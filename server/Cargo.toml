@@ -1,0 +1,49 @@
+[package]
+name = "chat-server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+tokio = { version = "1.48.0", features = ["full"] }
+# web框架
+# https://salvo.rs/zh-hans/guide/quick-start.html
+salvo = { version = "0.84", features = ["logging","oapi","anyhow","cors","affix-state","test"] }
+salvo-oapi = { version = "0.84", features = ["swagger-ui"] }
+#utoipa = { version = "5.0.0", features = ["chrono"] } 
+# 序列化
+serde = { version = "1.0.219", features = ["derive"] }
+# 中间件
+tower-http = { version = "0.6.2", features = ["cors", "trace"] }
+# 日志 
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+# 数据库
+sea-orm = { version = "1.1.13", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros","debug-print"] }
+sqlx = { version = "0.8.6", features = [ "runtime-tokio", "postgres" ,"migrate"] }
+
+####################其它依赖####################
+
+validator= {version="0.20.0",features = ["derive"]}
+# 环境变量
+dotenvy = "0.15.7"
+# 密码加密
+bcrypt = "0.17.1"
+# jwt
+jsonwebtoken = { version = "10.1.0", features = ["rust_crypto"] }
+# 时间
+chrono = { version = "0.4.38", features = ["serde"] }
+# 错误处理
+anyhow = "1.0.100"
+
+# 本地依赖
+data_model= { path = "crates/data_model" }
+
+serde_json = "1.0.145"
+redis = { version = "0.32.7", features = ["tokio-comp", "json","aio"]}
+wildmatch = "2.5.0"
+
+
+[workspace]
+members = ["crates/data_model"]

@@ -1,0 +1,65 @@
+use salvo::prelude::*;
+use salvo::cors::{Cors, AllowOrigin, AllowHeaders};
+use salvo::http::Method;
+use crate::core::app::AppState;
+use salvo_oapi::{OpenApi, SecurityScheme};
+use salvo_oapi::security::{Http, HttpAuthScheme};
+use crate::apis::*;
+
+#[handler]
+async fn hello(res: &mut Response) {
+    res.render(Text::Plain("Hello, world!"));
+}
+
+pub fn create_router(app_state: AppState) -> Service {
+    let admin_routes = Router::with_path("/api/admin")
+         .hoop(auth_middleware::auth)
+         .hoop(auth_middleware::error_handler)
+        //users
+        .push(Router::with_path("/users").get(user_api::get_list))
+        .push(Router::with_path("/users/{id}").get(user_api::get_by_id))
+        .push(Router::with_path("/users").post(user_api::add))
+        .push(Router::with_path("/users/{id}").put(user_api::update))
+        .push(Router::with_path("/users/{id}").delete(user_api::delete))
+        //roles
+        .push(Router::with_path("/roles").get(role_api::get_list))
+        .push(Router::with_path("/roles/{id}").get(role_api::get_by_id))
+        .push(Router::with_path("/roles").post(role_api::add))
+        .push(Router::with_path("/roles/{id}").put(role_api::update))
+        .push(Router::with_path("/roles/{id}").delete(role_api::delete))
+        //permissions
+        .push(Router::with_path("/permissions").get(permission_api::get_list))
+        .push(Router::with_path("/permissions/{id}").get(permission_api::get_by_id))
+        .push(Router::with_path("/permissions").post(permission_api::add))
+        .push(Router::with_path("/permissions/{id}").put(permission_api::update))
+        .push(Router::with_path("/permissions/{id}").delete(permission_api::delete))
+        //schools
+        .push(Router::with_path("/schools").get(school_api::get_list))
+        .push(Router::with_path("/schools/{id}").get(school_api::get_by_id))
+        .push(Router::with_path("/schools").post(school_api::add))
+        .push(Router::with_path("/schools/{id}").put(school_api::update))
+        .push(Router::with_path("/schools/{id}").delete(school_api::delete))
+        //classes
+        .push(Router::with_path("/classes").get(class_api::get_list))
+        .push(Router::with_path("/classes/{id}").get(class_api::get_by_id))
+        .push(Router::with_path("/classes").post(class_api::add))
+        .push(Router::with_path("/classes/{id}").put(class_api::update))
+        .push(Router::with_path("/classes/{id}").delete(class_api::delete));
+
+    let cors = Cors::new()
+    .allow_origin(AllowOrigin::any())
+    .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
+    .allow_headers(AllowHeaders::any()).into_handler();
+    let router=Router::new()
+        .hoop(affix_state::inject(app_state))
+        .get(hello)
+        .push( admin_routes);
+    //添加swagger-ui
+    let doc=OpenApi::new("app_server_api", "1.0.0")
+        .add_security_scheme("bearer", SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer).bearer_format("JWT")))
+        .merge_router(&router);
+    let router=router.unshift(doc.into_router("/api-doc/openapi.json"))
+    .unshift(SwaggerUi::new("/api-doc/openapi.json").into_router("/swagger-ui"));
+    let service=Service::new(router).hoop(cors).hoop(Logger::new());
+    service
+}

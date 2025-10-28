@@ -1,0 +1,36 @@
+export enum RouteName {
+    Home = 'home',
+    Products = 'products',
+    Login = 'login',
+    Register = 'register',
+    Admin = 'admin',
+    AdminDashboard = 'dashboard',
+    AdminProducts = 'products',
+    AdminOrders = 'orders',
+    AdminUsers = 'users',
+    AdminRoles = 'roles',
+    AdminApps = 'apps',
+    AdminResources = 'resources',
+    AdminRegCodes = 'reg_codes',
+    AdminDevices = 'devices',
+    AdminPermissions = 'permissions',
+}
+
+
+export enum RoutePath {
+    Home = '/',
+    Products = '/' + RouteName.Products,
+    Login = '/' + RouteName.Login,
+    Register = '/' + RouteName.Register,
+    Admin = '/' + RouteName.Admin,
+    AdminDashboard = '/' + RouteName.Admin + '/' + RouteName.AdminDashboard,
+    AdminProducts = '/' + RouteName.Admin + '/' + RouteName.AdminProducts,
+    AdminOrders = '/' + RouteName.Admin + '/' + RouteName.AdminOrders,
+    AdminUsers = '/' + RouteName.Admin + '/' + RouteName.AdminUsers,
+    AdminRoles = '/' + RouteName.Admin + '/' + RouteName.AdminRoles,
+    AdminApps = '/' + RouteName.Admin + '/' + RouteName.AdminApps,
+    AdminResources = '/' + RouteName.Admin + '/' + RouteName.AdminResources,
+    AdminRegCodes = '/' + RouteName.Admin + '/' + RouteName.AdminRegCodes,
+    AdminDevices = '/' + RouteName.Admin + '/' + RouteName.AdminDevices,
+    AdminPermissions = '/' + RouteName.Admin + '/' + RouteName.AdminPermissions,
+}
