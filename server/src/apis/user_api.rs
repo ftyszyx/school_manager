@@ -31,17 +31,17 @@ pub struct AuthResponse {
 #[derive(Deserialize, Debug, Validate)]
 pub struct UserCreatePayload {
     pub username: String,
-    pub password: String,
     pub role_ids: Option<Vec<i32>>,
     pub class_ids: Option<Vec<i32>>,
+    pub password: String,
 }
 
 #[derive(Deserialize, Debug, Validate)]
 pub struct UserUpdatePayload {
     pub username: Option<String>,
-    pub password: Option<String>,
     pub role_ids: Option<Vec<i32>>,
     pub class_ids: Option<Vec<i32>>,
+    pub password: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Validate)]
@@ -56,12 +56,6 @@ pub struct UserInfo {
     pub username: String,
     pub role_ids: Vec<i32>,
     pub created_at: DateTime<Utc>,
-}
-
-#[derive(Serialize)]
-pub struct User {
-    pub id: i32,
-    pub username: String,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -373,4 +367,10 @@ pub async fn get_by_id_impl(state: &AppState, id: i32) -> Result<UserInfo, AppEr
     let result: Option<UserInfo> = query.into_model::<UserInfo>().one(&state.db).await?;
     let user = result.ok_or_else(|| AppError::not_found("users".to_string(), Some(id)))?;
     return Ok(user);
+}
+
+
+#[handler]
+pub async fn logout() -> Result<ApiResponse<()>, AppError> {
+    Ok(ApiResponse::success(()))
 }

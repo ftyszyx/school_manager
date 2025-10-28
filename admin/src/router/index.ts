@@ -1,17 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import AdminLayout from '@/layouts/AdminLayout.vue'
-import DashboardView from '@/views/admin/DashboardView.vue'
-import ProductAdminView from '@/views/admin/ProductAdminView.vue'
-import OrderAdminView from '@/views/admin/OrderAdminView.vue'
-import UserAdminView from '@/views/admin/UserAdminView.vue'
-import AppAdminView from '@/views/admin/AppAdminView.vue'
-import ResourceAdminView from '@/views/admin/ResourceAdminView.vue'
-import RegCodesAdminView from '@/views/admin/RegCodesAdminView.vue'
-import RoleAdminView from '@/views/admin/RoleAdminView.vue'
 import LoginView from '@/views/auth/LoginView.vue'
 import RegisterView from '@/views/auth/RegisterView.vue'
-import DevicesAdminView from '@/views/admin/DevicesAdminView.vue'
-import PermissionAdminView from '@/views/admin/PermissionAdminView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { RouteName, RoutePath } from '@/types'
 
@@ -27,11 +17,6 @@ const router = createRouter({
                     name: RouteName.Home,
                     component: () => import('@/views/HomeView.vue')
                 },
-                {
-                    path: RoutePath.Products,
-                    name: RouteName.Products,
-                    component: () => import('@/views/ProductsView.vue')
-                }
             ]
         },
         {
@@ -53,52 +38,38 @@ const router = createRouter({
                 {
                     path: RoutePath.AdminDashboard,
                     name: RouteName.AdminDashboard,
-                    component: DashboardView
-                },
-                {
-                    path: RoutePath.AdminProducts,
-                    name: RouteName.AdminProducts,
-                    component: ProductAdminView
-                },
-                {
-                    path: RoutePath.AdminOrders,
-                    name: RouteName.AdminOrders,
-                    component: OrderAdminView
+                    component: () => import('@/views/admin/DashboardView.vue')
                 },
                 {
                     path: RoutePath.AdminUsers,
                     name: RouteName.AdminUsers,
-                    component: UserAdminView
+                    component: () => import('@/views/admin/UserAdminView.vue')
                 },
                 {
                     path: RoutePath.AdminRoles,
                     name: RouteName.AdminRoles,
-                    component: RoleAdminView
+                    component: () => import('@/views/admin/RoleAdminView.vue')
                 },
                 {
-                    path: RoutePath.AdminApps,
-                    name: RouteName.AdminApps,
-                    component: AppAdminView
-                },
-                {
-                    path: RoutePath.AdminResources,
-                    name: RouteName.AdminResources,
-                    component: ResourceAdminView
-                }
-                ,{
-                    path: RoutePath.AdminDevices,
-                    name: RouteName.AdminDevices,
-                    component: DevicesAdminView
-                }
-                ,{
-                    path: '/admin/reg_codes',
-                    name: 'admin_reg_codes',
-                    component: RegCodesAdminView
-                }
-                ,{
                     path: RoutePath.AdminPermissions,
                     name: RouteName.AdminPermissions,
-                    component: PermissionAdminView
+                    component: () => import('@/views/admin/PermissionAdminView.vue')
+                },
+                {
+                    path: 'schools',
+                    name: 'AdminSchools',
+                    component: () => import('@/views/admin/SchoolAdminView.vue'),
+                    meta: {
+                        title: 'Schools Management'
+                    }
+                },
+                {
+                    path: 'classes',
+                    name: 'AdminClasses',
+                    component: () => import('@/views/admin/ClassAdminView.vue'),
+                    meta: {
+                        title: 'Classes Management'
+                    }
                 }
             ]
         }

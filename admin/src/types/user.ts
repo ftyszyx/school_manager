@@ -1,21 +1,46 @@
 import type { ListParamsReq } from "./api"
 
-export interface ChangePasswordPayload {
-  old_password: string
-  new_password: string
-}
-
-export interface UserInfo {
+export interface User {
   id: number
   username: string
-  balance: number
-  invite_count: number
-  invite_rebate_total: number
-  role_id: number
-  role_name: string
+  role_ids: number[]
   created_at: string
 }
 
-export type CreateUserReq = { username: string; password: string; role_id?: number }
-export type UpdateUserReq = { username?: string; password?: string; role_id?: number; balance?: number }
-export type ListUsersParams = {  username?: string; id?: number }&ListParamsReq
+export type UserListRequest = {
+  username?: string
+  id?: number
+}&ListParamsReq;
+
+export interface UserUpdateRequest {
+  username?: string
+  password?: string
+  role_ids?: number[]
+  class_ids?: number[]
+}
+
+export interface UserCreateRequest {
+  username: string
+  password: string
+  role_ids: number[]
+  class_ids: number[]
+}
+
+export interface AuthPayload {
+    username: string;
+    password: string;
+}
+
+export interface AuthResponse {
+    token: string;
+}
+
+export interface RegisterPayload {
+    username: string;
+    password: string;
+}
+
+export interface ChangePasswordPayload {
+    old_password: string;
+    new_password: string;
+}

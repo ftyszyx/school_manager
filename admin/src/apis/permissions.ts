@@ -1,29 +1,30 @@
-import request from "@/utils/request";
-import type { PolicyInfo, AddPolicyReq, RemovePolicyReq, RoleLinkInfo, AddRoleReq, RemoveRoleReq, PermissionCheckReq } from "@/types";
+import type { PagingResponse } from '@/types/api'
+import type {
+  Permission,
+  PermissionCreateRequest,
+  PermissionListRequest,
+  PermissionUpdateRequest
+} from '@/types/permissions'
+import request from '@/utils/request'
 
-export async function fetchPolicies(): Promise<PolicyInfo[]> {
-  return (await request.get("/admin/permissions/policies")).data;
-}
-export async function addPolicy(payload: AddPolicyReq): Promise<boolean> {
-  return (await request.post("/admin/permissions/policies", payload)).data;
-}
-export async function removePolicy(payload: RemovePolicyReq): Promise<boolean> {
-  return (await request.delete("/admin/permissions/policies", { data: payload } as any)).data;
-}
-
-export async function fetchRoleLinks(): Promise<RoleLinkInfo[]> {
-  return (await request.get("/admin/permissions/roles")).data;
-}
-export async function addRoleForUser(payload: AddRoleReq): Promise<boolean> {
-  return (await request.post("/admin/permissions/roles", payload)).data;
-}
-export async function removeRoleForUser(payload: RemoveRoleReq): Promise<boolean> {
-  return (await request.delete("/admin/permissions/roles", { data: payload } as any)).data;
+export const getPermissions = async (
+  params: PermissionListRequest
+): Promise<PagingResponse<Permission>> => {
+  return (await request.get('/api/admin/permissions', { params })).data
 }
 
-export async function checkPermission(payload: PermissionCheckReq): Promise<boolean> {
-  return (await request.post("/admin/permissions/check", payload)).data;
+export const getPermission = async (id: number): Promise<Permission> => {
+  return (await request.get(`/api/admin/permissions/${id}`)).data
 }
-export async function reloadPolicies(): Promise<string> {
-  return (await request.post("/admin/permissions/reload", {})).data;
+
+export const createPermission = async (data: PermissionCreateRequest): Promise<Permission> => {
+  return (await request.post('/api/admin/permissions', data)).data
+}
+
+export const updatePermission = async (id: number, data: PermissionUpdateRequest): Promise<Permission> => {
+  return (await request.put(`/api/admin/permissions/${id}`, data)).data
+}
+
+export const deletePermission = async (id: number): Promise<void> => {
+  return (await request.delete(`/api/admin/permissions/${id}`)).data
 }

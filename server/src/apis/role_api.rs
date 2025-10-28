@@ -2,8 +2,7 @@ use crate::apis::list_api::{ListParamsReq, PagingResponse};
 use crate::core::app::AppState;
 use crate::core::error::AppError;
 use crate::core::response::ApiResponse;
-use crate::utils::convert::from_str_optional;
-use data_model::roles;
+use data_model::{role_permissions, roles};
 use salvo::{oapi::extract::*, prelude::*};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
@@ -11,9 +10,9 @@ use validator::Validate;
 
 #[derive(Deserialize, Debug, Validate, ToSchema)]
 pub struct RoleCreatePayload {
-    #[validate(length(min = 1, max = 50))]
     pub name: String,
     pub description: Option<String>,
+    pub permission_ids: Option<Vec<i32>>,
 }
 
 #[derive(Deserialize, Debug, Validate, ToSchema)]
@@ -21,6 +20,7 @@ pub struct RoleUpdatePayload {
     #[validate(length(min = 1, max = 50))]
     pub name: Option<String>,
     pub description: Option<String>,
+    pub permission_ids: Option<Vec<i32>>,
 }
 
 #[derive(Deserialize, Serialize, Debug, FromQueryResult, ToSchema)]
@@ -28,6 +28,7 @@ pub struct RoleInfo {
     pub id: i32,
     pub name: String,
     pub description: Option<String>,
+    pub permission_ids: Vec<i32>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -35,8 +36,6 @@ pub struct SearchRolesParams {
     #[serde(flatten)]
     pub pagination: ListParamsReq,
     pub name: Option<String>,
-    #[serde(deserialize_with = "from_str_optional", default)]
-    pub id: Option<i32>,
 }
 
 // Create Role
@@ -51,12 +50,23 @@ pub async fn add(
 }
 
 pub async fn add_impl(state: &AppState, req: RoleCreatePayload) -> Result<roles::Model, AppError> {
+    let txn = state.db.begin().await?;
     let new_role = roles::ActiveModel {
         name: Set(req.name),
         description: Set(req.description),
         ..Default::default()
     };
-    let role = new_role.insert(&state.db).await?;
+    let role = new_role.insert(&txn).await?;
+    if let Some(permission_ids) = req.permission_ids {
+        for permission_id in permission_ids {
+            let new_role_permission = role_permissions::ActiveModel {
+                role_id: Set(role.id),
+                permission_id: Set(permission_id),
+            };
+            new_role_permission.insert(&txn).await?;
+        }
+    }
+    txn.commit().await?;
     Ok(role)
 }
 
@@ -77,8 +87,9 @@ pub async fn update_impl(
     id: i32,
     req: RoleUpdatePayload,
 ) -> Result<roles::Model, AppError> {
+    let txn = state.db.begin().await?;
     let role = roles::Entity::find_by_id(id)
-        .one(&state.db)
+        .one(&txn)
         .await?
         .ok_or_else(|| AppError::not_found("roles".to_string(), Some(id)))?;
 
@@ -90,8 +101,21 @@ pub async fn update_impl(
     if let Some(description) = req.description {
         role_active_model.description = Set(Some(description));
     }
-
+    if let Some(permission_ids) = req.permission_ids {
+        role_permissions::Entity::delete_many()
+            .filter(role_permissions::Column::RoleId.eq(id))
+            .exec(&txn)
+            .await?;
+        for permission_id in permission_ids {
+            let new_role_permission = role_permissions::ActiveModel {
+                role_id: Set(id),
+                permission_id: Set(permission_id),
+            };
+            new_role_permission.insert(&txn).await?;
+        }
+    }
     let role = role_active_model.update(&state.db).await?;
+    txn.commit().await?;
     Ok(role)
 }
 
@@ -132,10 +156,7 @@ pub async fn get_list_impl(
     let page_size = params.pagination.page_size.unwrap_or(20);
 
     let mut query = roles::Entity::find();
-
-    crate::filter_if_some!(query, roles::Column::Id, params.id, eq);
     crate::filter_if_some!(query, roles::Column::Name, params.name, like);
-
     let paginator = query.into_model().paginate(&state.db, page_size);
     let total = paginator.num_items().await?;
     let list = paginator.fetch_page(page - 1).await?;

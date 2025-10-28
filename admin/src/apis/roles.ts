@@ -1,16 +1,23 @@
-import request from "@/utils/request";
-import type {  PagingResponse } from "@/types";
-import type { ListRolesParams, RoleInfo, CreateRoleReq, UpdateRoleReq } from "@/types";
+import type { PagingResponse } from '@/types/api'
+import type { Role, RoleCreateRequest, RoleListRequest, RoleUpdateRequest } from '@/types/roles'
+import request from '@/utils/request'
 
-export async function fetchRoles(params: ListRolesParams): Promise<PagingResponse<RoleInfo>> {
-  return (await request.get("/admin/roles/list", { params })).data;
+export const getRoles = async (params: RoleListRequest): Promise<PagingResponse<Role>> => {
+  return (await request.get('/api/admin/roles', { params })).data
 }
-export async function createRole(payload: CreateRoleReq): Promise<RoleInfo> {
-  return (await request.post("/admin/roles", payload)).data;
+
+export const getRole = async (id: number): Promise<Role> => {
+  return (await request.get(`/api/admin/roles/${id}`)).data
 }
-export async function updateRole(id: number, payload: UpdateRoleReq): Promise<RoleInfo> {
-  return (await request.put(`/admin/roles/${id}`, payload)).data;
+
+export const createRole = async (data: RoleCreateRequest): Promise<Role> => {
+  return (await request.post('/api/admin/roles', data)).data
 }
-export async function deleteRole(id: number): Promise<void> {
-  return (await request.delete(`/admin/roles/${id}`)).data;
+
+export const updateRole = async (id: number, data: RoleUpdateRequest): Promise<Role> => {
+  return (await request.put(`/api/admin/roles/${id}`, data)).data
+}
+
+export const deleteRole = async (id: number): Promise<void> => {
+  return (await request.delete(`/api/admin/roles/${id}`)).data
 }

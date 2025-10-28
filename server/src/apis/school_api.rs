@@ -7,17 +7,14 @@ use data_model::schools;
 use salvo::{oapi::extract::*, prelude::*};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
-use validator::Validate;
 
-#[derive(Deserialize, Debug, Validate, ToSchema)]
+#[derive(Deserialize, Debug, ToSchema)]
 pub struct SchoolCreatePayload {
-    #[validate(length(min = 1, max = 255))]
     pub name: String,
 }
 
-#[derive(Deserialize, Debug, Validate, ToSchema)]
+#[derive(Deserialize, Debug, ToSchema)]
 pub struct SchoolUpdatePayload {
-    #[validate(length(min = 1, max = 255))]
     pub name: Option<String>,
 }
 

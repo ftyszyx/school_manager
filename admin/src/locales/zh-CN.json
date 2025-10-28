@@ -59,7 +59,9 @@
     "reg_codes": "注册码",
     "roles": "角色",
     "devices": "设备",
-    "permissions": "权限"
+    "permissions": "权限",
+    "schools": "学校",
+    "classes": "班级"
   },
   "dashboard": {
     "title": "仪表盘",

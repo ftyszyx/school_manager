@@ -2,20 +2,20 @@
 
 import request from '@/utils/request'
 import type {  PagingResponse } from '@/types'
-import type { ListUsersParams, UserInfo, CreateUserReq, UpdateUserReq } from '@/types/user'
+import type { UserListRequest, User, UserCreateRequest, UserUpdateRequest } from '@/types/user'
 
-export async function fetchUsers(params: ListUsersParams): Promise<PagingResponse<UserInfo>> {
-  return (await request.get('/admin/users/list', { params })).data
+export const getUsers = async (params: UserListRequest): Promise<PagingResponse<User>> => {
+  return (await request.get('/api/admin/users', { params })).data
 }
 
-export async function createUser(payload: CreateUserReq): Promise<UserInfo> {
-  return (await request.post('/admin/users', payload)).data
+export async function createUser(payload: UserCreateRequest): Promise<User> {
+  return (await request.post('/api/admin/users', payload)).data
 }
 
-export async function updateUser(id: number, payload: UpdateUserReq): Promise<UserInfo> {
-  return (await request.put(`/admin/users/${id}`, payload)).data
+export async function updateUser(id: number, payload: UserUpdateRequest): Promise<User> {
+  return (await request.put(`/api/admin/users/${id}`, payload)).data
 }
 
 export async function deleteUser(id: number): Promise<void> {
-  return (await request.delete(`/admin/users/${id}`)).data
+  return (await request.delete(`/api/admin/users/${id}`)).data
 }

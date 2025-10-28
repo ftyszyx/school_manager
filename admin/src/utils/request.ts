@@ -3,9 +3,9 @@ import { consoleError, consoleLog } from './log'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 
-console.log("request", import.meta.env.VITE_BASE_URL || '/api')
+console.log("request", import.meta.env.VITE_BASE_URL || '')
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_BASE_URL || '/api',
+  baseURL: import.meta.env.VITE_BASE_URL || '',
 })
 
 instance.interceptors.request.use(

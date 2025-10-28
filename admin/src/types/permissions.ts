@@ -1,20 +1,31 @@
 import type { ListParamsReq } from "./api";
-export interface PolicyInfo {
-  subject: string;
-  object: string;
-  action: string;
+export interface Permission {
+  id: number
+  name: string
+  resource: string
+  action: string
+  description?: string
 }
-export type AddPolicyReq = { subject: string; object: string; action: string };
-export type RemovePolicyReq = { subject: string; object: string; action: string };
-export interface RoleLinkInfo {
-  user_id: string;
-  user: string;
-  role: string;
+
+export type PermissionListRequest = {
+  name?: string
+  resource?: string
+  action?: string
+}&ListParamsReq;
+
+export interface PermissionUpdateRequest {
+  name?: string
+  resource?: string
+  action?: string
+  description?: string
 }
-export type AddRoleReq = { user_id: number; role_id: number };
-export type RemoveRoleReq = { user_id: number; role_id: number };
-export type PermissionCheckReq = { user_id: number; resource: string; action: string };
-export type ListPoliciesParams = {} & ListParamsReq;
+
+export interface PermissionCreateRequest {
+  name: string
+  resource: string
+  action: string
+  description?: string
+}
 
 export enum  ActionType {
   READ = "read",

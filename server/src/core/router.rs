@@ -21,6 +21,9 @@ pub fn create_router(app_state: AppState) -> Service {
         .push(Router::with_path("/users").post(user_api::add))
         .push(Router::with_path("/users/{id}").put(user_api::update))
         .push(Router::with_path("/users/{id}").delete(user_api::delete))
+        .push(Router::with_path("/me").get(user_api::get_current_user))
+        .push(Router::with_path("/me/password").post(user_api::change_password))
+        .push(Router::with_path("/logout").post(user_api::logout))
         //roles
         .push(Router::with_path("/roles").get(role_api::get_list))
         .push(Router::with_path("/roles/{id}").get(role_api::get_by_id))
@@ -52,6 +55,8 @@ pub fn create_router(app_state: AppState) -> Service {
     .allow_headers(AllowHeaders::any()).into_handler();
     let router=Router::new()
         .hoop(affix_state::inject(app_state))
+        .push(Router::with_path("/api/login").post(user_api::login))
+        .push(Router::with_path("/api/register").post(user_api::register))
         .get(hello)
         .push( admin_routes);
     //添加swagger-ui

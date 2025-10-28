@@ -69,7 +69,9 @@
     "resources": "Resources",
     "roles": "Roles",
     "devices": "Devices",
-    "permissions": "Permissions"
+    "permissions": "Permissions",
+    "schools": "",
+    "classes": ""
   },
   "users": {
     "title": "User Management",

@@ -2,7 +2,6 @@ use crate::apis::list_api::{ListParamsReq, PagingResponse};
 use crate::core::app::AppState;
 use crate::core::error::AppError;
 use crate::core::response::ApiResponse;
-use crate::utils::convert::from_str_optional;
 use data_model::permissions;
 use data_model::role_permissions;
 use salvo::{oapi::extract::*, prelude::*};
@@ -14,22 +13,16 @@ use std::time::Duration;
 
 #[derive(Deserialize, Debug, Validate, ToSchema)]
 pub struct PermissionCreatePayload {
-    #[validate(length(min = 1, max = 50))]
     pub name: String,
-    #[validate(length(min = 1, max = 50))]
     pub resource: String,
-    #[validate(length(min = 1, max = 50))]
     pub action: String,
     pub description: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Validate, ToSchema)]
 pub struct PermissionUpdatePayload {
-    #[validate(length(min = 1, max = 50))]
     pub name: Option<String>,
-    #[validate(length(min = 1, max = 50))]
     pub resource: Option<String>,
-    #[validate(length(min = 1, max = 50))]
     pub action: Option<String>,
     pub description: Option<String>,
 }
@@ -50,8 +43,6 @@ pub struct SearchPermissionsParams {
     pub name: Option<String>,
     pub resource: Option<String>,
     pub action: Option<String>,
-    #[serde(deserialize_with = "from_str_optional", default)]
-    pub id: Option<i32>,
 }
 
 // Create Permission
@@ -159,7 +150,6 @@ pub async fn get_list_impl(
 
     let mut query = permissions::Entity::find();
 
-    crate::filter_if_some!(query, permissions::Column::Id, params.id, eq);
     crate::filter_if_some!(query, permissions::Column::Name, params.name, like);
     crate::filter_if_some!(query, permissions::Column::Resource, params.resource, eq);
     crate::filter_if_some!(query, permissions::Column::Action, params.action, eq);
