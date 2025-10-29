@@ -1,9 +1,24 @@
 import type { ListParamsReq } from "./api"
 
+export interface UserRoleInfo {
+  role_id: number
+  role_name: string
+}
+
+export interface UserClassInfo {
+  class_id: number
+  class_name: string
+  school_id: number
+  school_name: string
+  grade: number
+  class: number
+}
+
 export interface User {
   id: number
   username: string
-  role_ids: number[]
+  role_infos: UserRoleInfo[]
+  class_infos: UserClassInfo[]
   created_at: string
 }
 

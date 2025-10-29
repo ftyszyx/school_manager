@@ -9,7 +9,7 @@ pub mod utils;
 async fn main() {
     // env
     dotenvy::dotenv().ok();
-    core::app::init_log().unwrap();
+    let _guard = core::app::init_log().unwrap();
 
     let app_state = core::app::init_app().await.context("init app failed").unwrap();
     let host = app_state.config.server.host.clone();

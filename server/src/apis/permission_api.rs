@@ -27,7 +27,7 @@ pub struct PermissionUpdatePayload {
     pub description: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug, FromQueryResult, ToSchema)]
+#[derive(Deserialize, Serialize, Debug, FromQueryResult, ToSchema, Clone)]
 pub struct PermissionInfo {
     pub id: i32,
     pub name: String,
@@ -63,7 +63,7 @@ pub async fn add_impl(
     let new_permission = permissions::ActiveModel {
         name: Set(req.name),
         resource: Set(req.resource),
-        action: Set(req.action),
+        action: Set(req.action.to_uppercase()),
         description: Set(req.description),
         ..Default::default()
     };
@@ -102,7 +102,7 @@ pub async fn update_impl(
         permission_active_model.resource = Set(resource);
     }
     if let Some(action) = req.action {
-        permission_active_model.action = Set(action);
+        permission_active_model.action = Set(action.to_uppercase());
     }
     if let Some(description) = req.description {
         permission_active_model.description = Set(Some(description));
@@ -247,4 +247,14 @@ async  fn check_permission(res:&str,action:&str,permissions:&Vec<permissions::Mo
         }
     }
     Ok(false)
+}
+
+
+pub async fn get_permission_infos(state: &AppState, permission_ids: Vec<i32>) -> Result<Vec<PermissionInfo>, AppError> {
+    let permissions = permissions::Entity::find()
+        .filter(permissions::Column::Id.is_in(permission_ids))
+        .into_model::<PermissionInfo>()
+        .all(&state.db)
+        .await?;
+    Ok(permissions)
 }

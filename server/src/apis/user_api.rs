@@ -9,11 +9,11 @@ use crate::utils::convert::from_str_optional;
 use crate::utils::jwt::create_jwt;
 use bcrypt::verify;
 use chrono::{DateTime, Utc};
-use data_model::{roles, teacher_classes, user_roles, users};
+use data_model::{classes, roles, schools, teacher_classes, user_roles, users};
 use salvo::{oapi::extract::*, prelude::*};
-use sea_orm::sea_query::{Alias, Expr, JoinType};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tracing::info;
 use validator::Validate;
 
@@ -51,10 +51,27 @@ pub struct ChangePasswordPayload {
 }
 
 #[derive(Deserialize, Serialize, Debug, FromQueryResult)]
+pub struct UserClassInfo {
+    pub class_id: i32,
+    pub class_name: String,
+    pub school_id: i32,
+    pub school_name: String,
+    pub grade: i32,
+    pub class: i32,
+}
+
+#[derive(Deserialize, Serialize, Debug, FromQueryResult)]
+pub struct UserRoleInfo {
+    pub role_id: i32,
+    pub role_name: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
 pub struct UserInfo {
     pub id: i32,
     pub username: String,
-    pub role_ids: Vec<i32>,
+    pub class_infos: Vec<UserClassInfo>,
+    pub role_infos: Vec<UserRoleInfo>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -92,7 +109,8 @@ pub async fn register(
     .await?;
     let user_info = get_by_id_impl(&state, new_user.id).await?;
     info!("User registered: {}", user_info.username);
-    let token = create_jwt(user_info.id, user_info.role_ids, &state.config.jwt)
+    let role_ids = user_info.role_infos.iter().map(|r| r.role_id).collect();
+    let token = create_jwt(user_info.id, role_ids, &state.config.jwt)
         .map_err(|_| AppError::auth_failed("Token creation failed"))?;
     Ok(ApiResponse::success(AuthResponse { token }))
 }
@@ -233,6 +251,9 @@ pub async fn update_impl(
     let user = users::Entity::find_by_id(id).one(&txn).await?;
     let user = user.ok_or_else(|| AppError::not_found("users".to_string(), Some(id)))?;
     let mut user_active_model: users::ActiveModel = user.into();
+    if let Some(username) = req.username {
+        user_active_model.username = Set(username);
+    }
 
     if let Some(password) = req.password {
         let hashed_password = bcrypt::hash(password, 10)?;
@@ -311,26 +332,107 @@ pub async fn get_list(
     Ok(ApiResponse::success(list))
 }
 
-pub fn get_query() -> Select<data_model::users::Entity> {
-    let user_role_alias = Alias::new("user_role");
-    let query = users::Entity::find()
-        .join_as(
-            JoinType::LeftJoin,
-            users::Relation::UserRoles.def(),
-            user_role_alias.clone(),
-        )
-        .select_only()
-        .column_as(users::Column::Id, "id")
-        .column_as(users::Column::Username, "username")
-        .column_as(users::Column::CreatedAt, "created_at")
-        .column_as(
-            Expr::cust("COALESCE(ARRAY_AGG(user_role.role_id) FILTER (WHERE user_role.role_id IS NOT NULL), '{}'::integer[])"),
-            "role_ids",
-        )
-        .group_by(users::Column::Id)
-        .group_by(users::Column::Username)
-        .group_by(users::Column::CreatedAt);
-    query
+async fn enrich_users_with_details(
+    state: &AppState,
+    user_models: Vec<users::Model>,
+) -> Result<Vec<UserInfo>, AppError> {
+    if user_models.is_empty() {
+        return Ok(vec![]);
+    }
+    let user_ids: Vec<i32> = user_models.iter().map(|u| u.id).collect();
+
+    // Fetch all related data in batches
+    let user_roles_list = user_roles::Entity::find()
+        .filter(user_roles::Column::UserId.is_in(user_ids.clone()))
+        .all(&state.db)
+        .await?;
+    let teacher_classes_list = teacher_classes::Entity::find()
+        .filter(teacher_classes::Column::UserId.is_in(user_ids.clone()))
+        .all(&state.db)
+        .await?;
+
+    let role_ids: Vec<i32> = user_roles_list.iter().map(|ur| ur.role_id).collect();
+    let class_ids: Vec<i32> = teacher_classes_list.iter().map(|tc| tc.class_id).collect();
+
+    let roles_map: HashMap<i32, roles::Model> = if role_ids.is_empty() {
+        HashMap::new()
+    } else {
+        roles::Entity::find()
+            .filter(roles::Column::Id.is_in(role_ids))
+            .all(&state.db)
+            .await?
+            .into_iter()
+            .map(|r| (r.id, r))
+            .collect()
+    };
+
+    let classes_map: HashMap<i32, classes::Model> = if class_ids.is_empty() {
+        HashMap::new()
+    } else {
+        classes::Entity::find()
+            .filter(classes::Column::Id.is_in(class_ids))
+            .all(&state.db)
+            .await?
+            .into_iter()
+            .map(|c| (c.id, c))
+            .collect()
+    };
+
+    let school_ids: Vec<i32> = classes_map.values().map(|c| c.school_id).collect();
+    let schools_map: HashMap<i32, schools::Model> = if school_ids.is_empty() {
+        HashMap::new()
+    } else {
+        schools::Entity::find()
+            .filter(schools::Column::Id.is_in(school_ids))
+            .all(&state.db)
+            .await?
+            .into_iter()
+            .map(|s| (s.id, s))
+            .collect()
+    };
+
+    // Map data to UserInfo
+    let list = user_models
+        .into_iter()
+        .map(|user| {
+            let role_infos: Vec<UserRoleInfo> = user_roles_list
+                .iter()
+                .filter(|ur| ur.user_id == user.id)
+                .filter_map(|ur| {
+                    roles_map.get(&ur.role_id).map(|r| UserRoleInfo {
+                        role_id: r.id,
+                        role_name: r.name.clone(),
+                    })
+                })
+                .collect();
+
+            let class_infos: Vec<UserClassInfo> = teacher_classes_list
+                .iter()
+                .filter(|tc| tc.user_id == user.id)
+                .filter_map(|tc| {
+                    classes_map.get(&tc.class_id).and_then(|c| {
+                        schools_map.get(&c.school_id).map(|s| UserClassInfo {
+                            class_id: c.id,
+                            class_name: c.name.clone(),
+                            school_id: s.id,
+                            school_name: s.name.clone(),
+                            grade: c.grade,
+                            class: c.class,
+                        })
+                    })
+                })
+                .collect();
+
+            UserInfo {
+                id: user.id,
+                username: user.username,
+                created_at: user.created_at.into(),
+                role_infos,
+                class_infos,
+            }
+        })
+        .collect();
+    Ok(list)
 }
 
 pub async fn get_list_impl(
@@ -339,14 +441,16 @@ pub async fn get_list_impl(
 ) -> Result<PagingResponse<UserInfo>, AppError> {
     let page = params.pagination.page.unwrap_or(1);
     let page_size = params.pagination.page_size.unwrap_or(20);
-    let mut query = get_query();
+
+    let mut query = users::Entity::find();
     crate::filter_if_some!(query, users::Column::Id, params.id, eq);
     crate::filter_if_some!(query, users::Column::Username, params.username, like);
-    let paginator = query
-        .into_model::<UserInfo>()
-        .paginate(&state.db, page_size);
+
+    let paginator = query.paginate(&state.db, page_size);
     let total = paginator.num_items().await?;
-    let list = paginator.fetch_page(page - 1).await?;
+    let user_models = paginator.fetch_page(page - 1).await?;
+    let list = enrich_users_with_details(state, user_models).await?;
+
     Ok(PagingResponse { list, total, page })
 }
 
@@ -362,11 +466,16 @@ pub async fn get_by_id(
 }
 
 pub async fn get_by_id_impl(state: &AppState, id: i32) -> Result<UserInfo, AppError> {
-    let query = get_query();
-    let query = query.filter(users::Column::Id.eq(id));
-    let result: Option<UserInfo> = query.into_model::<UserInfo>().one(&state.db).await?;
-    let user = result.ok_or_else(|| AppError::not_found("users".to_string(), Some(id)))?;
-    return Ok(user);
+    let user = users::Entity::find_by_id(id)
+        .one(&state.db)
+        .await?
+        .ok_or_else(|| AppError::not_found("users".to_string(), Some(id)))?;
+
+    let mut user_infos = enrich_users_with_details(state, vec![user]).await?;
+    if user_infos.is_empty() {
+        return Err(AppError::not_found("users".to_string(), Some(id)));
+    }
+    Ok(user_infos.remove(0))
 }
 
 

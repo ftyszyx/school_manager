@@ -58,10 +58,10 @@ pub async fn init_app() -> Result<AppState> {
     Ok(app_state)
 }
 
-pub fn init_log() -> Result<()> {
+pub fn init_log() -> Result<tracing_appender::non_blocking::WorkerGuard, anyhow::Error> {
     // 同时输出到文件和 stdout，并保留 guard 确保文件日志 flush
     let file_appender = rolling::daily("logs", "app.log");
-    let (non_blocking_appender, _) = tracing_appender::non_blocking(file_appender);
+    let (non_blocking_appender, guard) = tracing_appender::non_blocking(file_appender);
     let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| "info".into());
     let fmt_file = tracing_subscriber::fmt::layer()
@@ -73,6 +73,7 @@ pub fn init_log() -> Result<()> {
         .with(env_filter)
         .with(fmt_file)
         .with(fmt_stdout)
-        .try_init();
-    Ok(())
+        .try_init()
+        .map_err(|e| anyhow::anyhow!(e))?;
+    Ok(guard)
 }

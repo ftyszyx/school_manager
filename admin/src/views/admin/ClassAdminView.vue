@@ -1,64 +1,71 @@
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import {
   getClasses,
   createClass,
   updateClass,
-  deleteClass,
-  getClass
+  deleteClass
 } from '@/apis/classes'
 import { getSchools } from '@/apis/schools'
-import type { ClassInfo, ClassCreateRequest, ClassUpdateRequest } from '@/types/classes'
+import type { ClassInfo, ClassCreateRequest, ClassUpdateRequest, ClassUserInfo } from '@/types/classes'
 import type { School } from '@/types/schools'
-import { NButton, NDataTable, NPopconfirm, NCard, NFlex, NModal, NForm, NFormItem, NInput, NSelect, NInputNumber } from 'naive-ui'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { useI18n } from 'vue-i18n'
+import { useClipboard } from '@vueuse/core'
 
+const { t } = useI18n()
+const { copy, copied } = useClipboard()
 const classes = ref<ClassInfo[]>([])
 const schools = ref<School[]>([])
 const loading = ref(true)
 const showModal = ref(false)
 const isEdit = ref(false)
-const currentClass = ref<Partial<ClassCreateRequest | ClassUpdateRequest>>({ name: '', grade: undefined, class: undefined, school_id: undefined })
+const currentClass = ref<Partial<ClassCreateRequest | ClassUpdateRequest>>({})
 const currentClassId = ref<number | null>(null)
+const page = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
+const formRef = ref<FormInstance>()
 
-const schoolOptions = ref<{ label: string; value: number }[]>([])
-
-const columns = [
-  { title: 'ID', key: 'id' },
-  { title: 'Name', key: 'name' },
-  { title: 'School ID', key: 'school_id' },
-  { title: 'Grade', key: 'grade' },
-  { title: 'Class', key: 'class' },
-  { title: 'Status', key: 'status' },
-  {
-    title: 'Actions',
-    key: 'actions',
-    render(row: ClassInfo) {
-      return h(NFlex, null, {
-        default: () => [
-          h(
-            NButton,
-            { size: 'small', onClick: () => handleEdit(row) },
-            { default: () => 'Edit' }
-          ),
-          h(
-            NPopconfirm,
-            { onPositiveClick: () => handleDelete(row.id) },
-            {
-              trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => 'Delete' }),
-              default: () => 'Are you sure you want to delete this class?'
-            }
-          )
-        ]
-      })
-    }
-  }
+const statusOptions = [
+  { label: '已放学', value: 0 },
+  { label: '上课中', value: 1 },
+  { label: '放学中', value: 2 }
 ]
+
+const rules = reactive<FormRules>({
+  name: [{ required: true, message: 'Name is required', trigger: 'blur' }],
+  school_id: [{ required: true, message: 'School is required', trigger: 'change' }],
+  grade: [{ required: true, message: 'Grade is required', trigger: 'blur' }],
+  class: [{ required: true, message: 'Class is required', trigger: 'blur' }]
+})
+
+const schoolNameMap = computed(() => {
+  return schools.value.reduce((map, school) => {
+    map[school.id] = school.name
+    return map
+  }, {} as Record<number, string>)
+})
+
+const statusMap = computed(() => {
+  return statusOptions.reduce((map, option) => {
+    map[option.value] = option.label
+    return map
+  }, {} as Record<number, string>)
+})
+
+const statusTypeMap = {
+  0: 'info',
+  1: 'success',
+  2: 'warning'
+} as const
 
 const fetchClasses = async () => {
   loading.value = true
   try {
-    const res = await getClasses({})
+    const res = await getClasses({ page: page.value, page_size: pageSize.value })
     classes.value = res.list
+    total.value = res.total
   } catch (error) {
     console.error(error)
   } finally {
@@ -70,7 +77,6 @@ const fetchSchools = async () => {
   try {
     const res = await getSchools({ page_size: 1000 }) // Fetch all schools
     schools.value = res.list
-    schoolOptions.value = res.list.map((s) => ({ label: s.name, value: s.id }))
   } catch (error) {
     console.error(error)
   }
@@ -78,46 +84,81 @@ const fetchSchools = async () => {
 
 const handleAdd = () => {
   isEdit.value = false
-  currentClass.value = { name: '', grade: undefined, class: undefined, school_id: undefined }
+  currentClass.value = { name: '', grade: undefined, class: undefined, school_id: undefined, status: 0, password: '' }
+  currentClassId.value = null
   showModal.value = true
 }
 
-const handleEdit = async (classInfo: ClassInfo) => {
+const handleEdit = (classInfo: ClassInfo) => {
   isEdit.value = true
   currentClassId.value = classInfo.id
-  const res = await getClass(classInfo.id)
-  currentClass.value = { 
-    name: res.name, 
-    grade: res.grade,
-    class: res.class,
-    school_id: res.school_id,
-    status: res.status,
-    password: res.password
-  }
+  currentClass.value = { ...classInfo }
   showModal.value = true
+}
+
+const generatePassword = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  let password = ''
+  for (let i = 0; i < 6; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  if (currentClass.value) {
+    currentClass.value.password = password
+  }
+}
+
+const handleCopy = (text: string) => {
+  copy(text)
+  if (copied.value) {
+    ElMessage.success(t('common.copied'))
+  }
 }
 
 const handleDelete = async (id: number) => {
   try {
+    await ElMessageBox.confirm(
+      t('common.delete_confirm', { name: classes.value.find(c => c.id === id)?.name || '' }),
+      t('common.confirm'),
+      { type: 'warning' }
+    )
     await deleteClass(id)
+    ElMessage.success(t('common.deleted'))
     fetchClasses()
   } catch (error) {
-    console.error(error)
+    if (error !== 'cancel') {
+      console.error(error)
+    }
   }
 }
 
 const handleSubmit = async () => {
+  const valid = await formRef.value?.validate()
+  if (!valid) return
+
   try {
     if (isEdit.value && currentClassId.value) {
       await updateClass(currentClassId.value, currentClass.value as ClassUpdateRequest)
+      ElMessage.success(t('common.save'))
     } else {
       await createClass(currentClass.value as ClassCreateRequest)
+      ElMessage.success(t('common.created'))
     }
     showModal.value = false
     fetchClasses()
   } catch (error) {
     console.error(error)
   }
+}
+
+const handlePageChange = (p: number) => {
+  page.value = p
+  fetchClasses()
+}
+
+const handleSizeChange = (s: number) => {
+  pageSize.value = s
+  page.value = 1
+  fetchClasses()
 }
 
 onMounted(() => {
@@ -127,36 +168,98 @@ onMounted(() => {
 </script>
 
 <template>
-  <NCard title="Classes Management">
-    <NFlex justify="end" class="mb-4">
-      <NButton @click="handleAdd">Add Class</NButton>
-    </NFlex>
-    <NDataTable :columns="columns" :data="classes" :loading="loading" />
-    <NModal v-model:show="showModal" preset="card" style="width: 600px" :title="isEdit ? 'Edit Class' : 'Add Class'">
-      <NForm @submit.prevent="handleSubmit">
-        <NFormItem label="Name" required>
-          <NInput v-model:value="currentClass.name" />
-        </NFormItem>
-        <NFormItem label="School" required>
-          <NSelect v-model:value="currentClass.school_id" :options="schoolOptions" />
-        </NFormItem>
-        <NFormItem label="Grade" required>
-          <NInputNumber v-model:value="currentClass.grade" />
-        </NFormItem>
-        <NFormItem label="Class" required>
-          <NInputNumber v-model:value="currentClass.class" />
-        </NFormItem>
-         <NFormItem label="Status">
-          <NInputNumber v-model:value="currentClass.status" />
-        </NFormItem>
-        <NFormItem label="Password">
-          <NInput v-model:value="currentClass.password" type="password" />
-        </NFormItem>
-        <NFlex justify="end">
-          <NButton @click="showModal = false">Cancel</NButton>
-          <NButton type="primary" attr-type="submit">Submit</NButton>
-        </NFlex>
-      </NForm>
-    </NModal>
-  </NCard>
+  <div class="space-y-4">
+    <el-card shadow="hover">
+      <div class="flex items-center justify-end">
+        <el-button type="success" @click="handleAdd">{{ $t("common.new") }}</el-button>
+      </div>
+    </el-card>
+
+    <el-card shadow="never">
+      <el-table :data="classes" v-loading="loading" stripe size="large" style="width: 100%">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column :label="$t('common.name')" prop="name" min-width="160" />
+        <el-table-column :label="$t('schools.school')" min-width="160">
+          <template #default="{ row }">{{ schoolNameMap[row.school_id] }}</template>
+        </el-table-column>
+        <el-table-column :label="$t('classes.grade')" prop="grade" width="100" />
+        <el-table-column :label="$t('classes.class')" prop="class" width="100" />
+        <el-table-column :label="$t('common.status')" prop="status" width="120">
+           <template #default="{ row }">
+            <el-tag :type="statusTypeMap[row.status as keyof typeof statusTypeMap]">{{ statusMap[row.status as keyof typeof statusMap] }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('classes.teachers')" min-width="150">
+          <template #default="{ row }">
+            {{ row.teacher_infos.map((t: ClassUserInfo) => t.user_name).join(', ') }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('classes.password')" prop="password" min-width="150">
+          <template #default="{ row }">
+            <div class="flex items-center">
+              <span>{{ row.password }}</span>
+              <el-button link type="primary" @click="handleCopy(row.password)" class="ml-2">
+                {{ $t('common.copy') }}
+              </el-button>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('common.actions')" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="handleEdit(row)">{{ $t("common.edit") }}</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(row.id)">{{ $t("common.delete") }}</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="flex justify-end mt-4">
+        <el-pagination
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :page-sizes="[10, 20, 50, 100]"
+          :page-size="pageSize"
+          :current-page="page"
+          :total="total"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
+    </el-card>
+
+    <el-dialog v-model="showModal" :title="isEdit ? $t('common.edit') : $t('common.create')" width="520px">
+      <el-form ref="formRef" :model="currentClass" :rules="rules" label-width="140px">
+        <el-form-item :label="$t('common.name')" prop="name">
+          <el-input v-model="currentClass.name" />
+        </el-form-item>
+        <el-form-item :label="$t('schools.school')" prop="school_id">
+          <el-select v-model="currentClass.school_id" class="w-full">
+            <el-option v-for="school in schools" :key="school.id" :label="school.name" :value="school.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="$t('classes.grade')" prop="grade">
+          <el-input-number v-model="currentClass.grade" :min="1" />
+        </el-form-item>
+        <el-form-item :label="$t('classes.class')" prop="class">
+          <el-input-number v-model="currentClass.class" :min="1" />
+        </el-form-item>
+        <el-form-item :label="$t('common.status')" prop="status">
+          <el-select v-model="currentClass.status" class="w-full">
+            <el-option v-for="option in statusOptions" :key="option.value" :label="option.label" :value="option.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="$t('classes.password')" prop="password">
+          <el-input v-model="currentClass.password" type="password" show-password >
+            <template #append>
+              <el-button @click="generatePassword">{{ $t('common.generate') }}</el-button>
+            </template>
+          </el-input>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showModal = false">{{ $t("common.cancel") }}</el-button>
+        <el-button type="primary" @click="handleSubmit">{{ $t("common.confirm") }}</el-button>
+      </template>
+    </el-dialog>
+  </div>
 </template>
+
+<style scoped></style>

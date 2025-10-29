@@ -37,7 +37,11 @@
     "delete_confirm": "",
     "name": "",
     "remark": "",
-    "id": ""
+    "id": "",
+    "description": "",
+    "available": "",
+    "assigned": "",
+    "status": ""
   },
   "auth": {
     "password_mismatch": "Passwords do not match",
@@ -201,5 +205,14 @@
     "binding_time": "",
     "expire_time": "",
     "apptitle": ""
+  },
+  "schools": {
+    "school": ""
+  },
+  "classes": {
+    "grade": "",
+    "class": "",
+    "password": "",
+    "teachers": ""
   }
 }

@@ -2,6 +2,7 @@ use crate::apis::list_api::{ListParamsReq, PagingResponse};
 use crate::core::app::AppState;
 use crate::core::error::AppError;
 use crate::core::response::ApiResponse;
+use crate::apis::permission_api::{PermissionInfo, get_permission_infos};
 use data_model::{role_permissions, roles};
 use salvo::{oapi::extract::*, prelude::*};
 use sea_orm::*;
@@ -23,12 +24,12 @@ pub struct RoleUpdatePayload {
     pub permission_ids: Option<Vec<i32>>,
 }
 
-#[derive(Deserialize, Serialize, Debug, FromQueryResult, ToSchema)]
+#[derive(Deserialize, Serialize, Debug,  ToSchema, Clone)]
 pub struct RoleInfo {
     pub id: i32,
     pub name: String,
     pub description: Option<String>,
-    pub permission_ids: Vec<i32>,
+    pub permission_infos: Option<Vec<PermissionInfo>>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -157,10 +158,10 @@ pub async fn get_list_impl(
 
     let mut query = roles::Entity::find();
     crate::filter_if_some!(query, roles::Column::Name, params.name, like);
-    let paginator = query.into_model().paginate(&state.db, page_size);
+    let paginator = query.paginate(&state.db,page_size);
     let total = paginator.num_items().await?;
-    let list = paginator.fetch_page(page - 1).await?;
-
+    let role_models = paginator.fetch_page(page - 1).await?;
+    let list = enrich_roles_with_details(state, role_models).await?;
     Ok(PagingResponse { list, total, page })
 }
 
@@ -177,9 +178,20 @@ pub async fn get_by_id(
 
 pub async fn get_by_id_impl(state: &AppState, id: i32) -> Result<RoleInfo, AppError> {
     let role = roles::Entity::find_by_id(id)
-        .into_model::<RoleInfo>()
         .one(&state.db)
         .await?
         .ok_or_else(|| AppError::not_found("roles".to_string(), Some(id)))?;
-    Ok(role)
+    let mut role_infos=enrich_roles_with_details(state, vec![role]).await?;
+    Ok(role_infos.remove(0))
+}
+
+pub async fn enrich_roles_with_details(state: &AppState, roles: Vec<roles::Model>) -> Result<Vec<RoleInfo>, AppError> {
+    let role_ids=roles.iter().map(|r| r.id).collect();
+    let permission_infos = get_permission_infos(&state, role_ids).await?;
+    Ok(roles.into_iter().map(|r| RoleInfo {
+        id: r.id,
+        name: r.name,
+        description: r.description,
+        permission_infos: Some(permission_infos.clone()),
+    }).collect())
 }

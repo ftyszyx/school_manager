@@ -30,7 +30,11 @@
     "delete_confirm": "确认删除",
     "name": "名称",
     "remark": "备注",
-    "id": "ID"
+    "id": "ID",
+    "description": "描述",
+    "available": "可用",
+    "assigned": "已分配",
+    "status": "状态"
   },
   "auth": {
     "welcome": "欢迎",
@@ -208,5 +212,14 @@
     "binding_time": "绑定时间",
     "expire_time": "过期时间",
     "apptitle": "应用信息"
+  },
+  "schools": {
+    "school": "学校"
+  },
+  "classes": {
+    "grade": "年级",
+    "class": "班级",
+    "password": "口令",
+    "teachers": "已分配教师"
   }
 }

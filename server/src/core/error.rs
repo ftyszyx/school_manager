@@ -139,7 +139,7 @@ impl From<validator::ValidationErrors> for AppError {
 
 impl From<DbErr> for AppError {
     fn from(err: DbErr) -> Self {
-        tracing::error!("Database error: {}", err);
+        tracing::error!("Database error: {:?}", err);
         Self::Database(err)
     }
 }

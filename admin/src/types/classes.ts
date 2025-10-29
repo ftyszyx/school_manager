@@ -1,5 +1,10 @@
 import type { ListParamsReq } from "./api"
 
+export interface ClassUserInfo {
+  user_id: number
+  user_name: string
+}
+
 export interface ClassInfo {
   id: number
   name: string
@@ -8,6 +13,7 @@ export interface ClassInfo {
   school_id: number
   status: number
   password?: string
+  teacher_infos: ClassUserInfo[]
 }
 
 export type ClassListRequest = {

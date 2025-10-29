@@ -3,10 +3,11 @@ use crate::core::app::AppState;
 use crate::core::error::AppError;
 use crate::core::response::ApiResponse;
 use crate::utils::convert::from_str_optional;
-use data_model::classes;
+use data_model::{classes, teacher_classes, users};
 use salvo::{oapi::extract::*, prelude::*};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use validator::Validate;
 
 #[derive(Deserialize, Debug, Validate, ToSchema)]
@@ -33,7 +34,13 @@ pub struct ClassUpdatePayload {
     pub password: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug, FromQueryResult, ToSchema)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
+pub struct UserClassInfo {
+    pub user_id: i32,
+    pub user_name: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 pub struct ClassInfo {
     pub id: i32,
     pub name: String,
@@ -42,6 +49,7 @@ pub struct ClassInfo {
     pub school_id: i32,
     pub status: i32,
     pub password: String,
+    pub teacher_infos: Vec<UserClassInfo>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -160,6 +168,64 @@ pub async fn get_list(
     Ok(ApiResponse::success(list))
 }
 
+async fn enrich_classes_with_details(
+    state: &AppState,
+    class_models: Vec<classes::Model>,
+) -> Result<Vec<ClassInfo>, AppError> {
+    if class_models.is_empty() {
+        return Ok(vec![]);
+    }
+    let class_ids: Vec<i32> = class_models.iter().map(|c| c.id).collect();
+
+    let teacher_classes_list = teacher_classes::Entity::find()
+        .filter(teacher_classes::Column::ClassId.is_in(class_ids.clone()))
+        .all(&state.db)
+        .await?;
+    
+    let user_ids: Vec<i32> = teacher_classes_list.iter().map(|tc| tc.user_id).collect();
+
+    let users_map: HashMap<i32, users::Model> = if user_ids.is_empty() {
+        HashMap::new()
+    } else {
+        users::Entity::find()
+            .filter(users::Column::Id.is_in(user_ids))
+            .all(&state.db)
+            .await?
+            .into_iter()
+            .map(|u| (u.id, u))
+            .collect()
+    };
+
+    let list = class_models
+        .into_iter()
+        .map(|class| {
+            let teacher_infos: Vec<UserClassInfo> = teacher_classes_list
+                .iter()
+                .filter(|tc| tc.class_id == class.id)
+                .filter_map(|tc| {
+                    users_map.get(&tc.user_id).map(|u| UserClassInfo {
+                        user_id: u.id,
+                        user_name: u.username.clone(),
+                    })
+                })
+                .collect();
+            
+            ClassInfo {
+                id: class.id,
+                name: class.name,
+                grade: class.grade,
+                class: class.class,
+                school_id: class.school_id,
+                status: class.status,
+                password: class.password,
+                teacher_infos,
+            }
+        })
+        .collect();
+
+    Ok(list)
+}
+
 pub async fn get_list_impl(
     state: &AppState,
     params: SearchClassesParams,
@@ -175,9 +241,11 @@ pub async fn get_list_impl(
     crate::filter_if_some!(query, classes::Column::Grade, params.grade, eq);
     crate::filter_if_some!(query, classes::Column::Class, params.class, eq);
 
-    let paginator = query.into_model().paginate(&state.db, page_size);
+    let paginator = query.paginate(&state.db, page_size);
     let total = paginator.num_items().await?;
-    let list = paginator.fetch_page(page - 1).await?;
+    let class_models = paginator.fetch_page(page - 1).await?;
+    
+    let list = enrich_classes_with_details(state, class_models).await?;
 
     Ok(PagingResponse { list, total, page })
 }
@@ -195,9 +263,13 @@ pub async fn get_by_id(
 
 pub async fn get_by_id_impl(state: &AppState, id: i32) -> Result<ClassInfo, AppError> {
     let class = classes::Entity::find_by_id(id)
-        .into_model::<ClassInfo>()
         .one(&state.db)
         .await?
         .ok_or_else(|| AppError::not_found("classes".to_string(), Some(id)))?;
-    Ok(class)
+    
+    let mut class_infos = enrich_classes_with_details(state, vec![class]).await?;
+    if class_infos.is_empty() {
+        return Err(AppError::not_found("classes".to_string(), Some(id)));
+    }
+    Ok(class_infos.remove(0))
 }

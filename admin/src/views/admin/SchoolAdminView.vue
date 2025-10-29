@@ -1,55 +1,37 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import {
   getSchools,
   createSchool,
   updateSchool,
-  deleteSchool,
-  getSchool
+  deleteSchool
 } from '@/apis/schools'
 import type { School, SchoolCreateRequest, SchoolUpdateRequest } from '@/types/schools'
-import { NButton, NDataTable, NPopconfirm, NCard, NFlex, NModal, NForm, NFormItem, NInput } from 'naive-ui'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const schools = ref<School[]>([])
 const loading = ref(true)
 const showModal = ref(false)
 const isEdit = ref(false)
 const currentSchool = ref<SchoolCreateRequest | SchoolUpdateRequest>({ name: '' })
 const currentSchoolId = ref<number | null>(null)
+const page = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
+const formRef = ref<FormInstance>()
 
-const columns = [
-  { title: 'ID', key: 'id' },
-  { title: 'Name', key: 'name' },
-  {
-    title: 'Actions',
-    key: 'actions',
-    render(row: School) {
-      return h(NFlex, null, {
-        default: () => [
-          h(
-            NButton,
-            { size: 'small', onClick: () => handleEdit(row) },
-            { default: () => 'Edit' }
-          ),
-          h(
-            NPopconfirm,
-            { onPositiveClick: () => handleDelete(row.id) },
-            {
-              trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => 'Delete' }),
-              default: () => 'Are you sure you want to delete this school?'
-            }
-          )
-        ]
-      })
-    }
-  }
-]
+const rules = reactive<FormRules>({
+  name: [{ required: true, message: 'Name is required', trigger: 'blur' }]
+})
 
 const fetchSchools = async () => {
   loading.value = true
   try {
-    const res = await getSchools({})
+    const res = await getSchools({ page: page.value, page_size: pageSize.value })
     schools.value = res.list
+    total.value = res.total
   } catch (error) {
     console.error(error)
   } finally {
@@ -60,32 +42,45 @@ const fetchSchools = async () => {
 const handleAdd = () => {
   isEdit.value = false
   currentSchool.value = { name: '' }
+  currentSchoolId.value = null
   showModal.value = true
 }
 
-const handleEdit = async (school: School) => {
+const handleEdit = (school: School) => {
   isEdit.value = true
   currentSchoolId.value = school.id
-  const res = await getSchool(school.id)
-  currentSchool.value = { name: res.name }
+  currentSchool.value = { name: school.name }
   showModal.value = true
 }
 
 const handleDelete = async (id: number) => {
   try {
+    await ElMessageBox.confirm(
+      t('common.delete_confirm', { name: schools.value.find(s => s.id === id)?.name || '' }),
+      t('common.confirm'),
+      { type: 'warning' }
+    )
     await deleteSchool(id)
+    ElMessage.success(t('common.deleted'))
     fetchSchools()
   } catch (error) {
-    console.error(error)
+    if (error !== 'cancel') {
+      console.error(error)
+    }
   }
 }
 
 const handleSubmit = async () => {
+  const valid = await formRef.value?.validate()
+  if (!valid) return
+
   try {
     if (isEdit.value && currentSchoolId.value) {
       await updateSchool(currentSchoolId.value, currentSchool.value as SchoolUpdateRequest)
+      ElMessage.success(t('common.save'))
     } else {
       await createSchool(currentSchool.value as SchoolCreateRequest)
+      ElMessage.success(t('common.created'))
     }
     showModal.value = false
     fetchSchools()
@@ -94,27 +89,67 @@ const handleSubmit = async () => {
   }
 }
 
+const handlePageChange = (p: number) => {
+  page.value = p
+  fetchSchools()
+}
+
+const handleSizeChange = (s: number) => {
+  pageSize.value = s
+  page.value = 1
+  fetchSchools()
+}
+
 onMounted(() => {
   fetchSchools()
 })
 </script>
 
 <template>
-  <NCard title="Schools Management">
-    <NFlex justify="end" class="mb-4">
-      <NButton @click="handleAdd">Add School</NButton>
-    </NFlex>
-    <NDataTable :columns="columns" :data="schools" :loading="loading" />
-    <NModal v-model:show="showModal" preset="card" style="width: 600px" :title="isEdit ? 'Edit School' : 'Add School'">
-      <NForm @submit.prevent="handleSubmit">
-        <NFormItem label="Name" required>
-          <NInput v-model:value="currentSchool.name" />
-        </NFormItem>
-        <NFlex justify="end">
-          <NButton @click="showModal = false">Cancel</NButton>
-          <NButton type="primary" attr-type="submit">Submit</NButton>
-        </NFlex>
-      </NForm>
-    </NModal>
-  </NCard>
+  <div class="space-y-4">
+    <el-card shadow="hover">
+      <div class="flex items-center justify-end">
+        <el-button type="success" @click="handleAdd">{{ $t("common.new") }}</el-button>
+      </div>
+    </el-card>
+
+    <el-card shadow="never">
+      <el-table :data="schools" v-loading="loading" stripe size="large" style="width: 100%">
+        <el-table-column prop="id" label="ID" width="80" />
+        <el-table-column :label="$t('common.name')" prop="name" min-width="160" />
+        <el-table-column :label="$t('common.actions')" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="handleEdit(row)">{{ $t("common.edit") }}</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(row.id)">{{ $t("common.delete") }}</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="flex justify-end mt-4">
+        <el-pagination
+          background
+          layout="total, sizes, prev, pager, next, jumper"
+          :page-sizes="[10, 20, 50, 100]"
+          :page-size="pageSize"
+          :current-page="page"
+          :total="total"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
+    </el-card>
+
+    <el-dialog v-model="showModal" :title="isEdit ? $t('common.edit') : $t('common.create')" width="520px">
+      <el-form ref="formRef" :model="currentSchool" :rules="rules" label-width="140px">
+        <el-form-item :label="$t('common.name')" prop="name">
+          <el-input v-model="currentSchool.name" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showModal = false">{{ $t("common.cancel") }}</el-button>
+        <el-button type="primary" @click="handleSubmit">{{ $t("common.confirm") }}</el-button>
+      </template>
+    </el-dialog>
+  </div>
 </template>
+
+<style scoped></style>
