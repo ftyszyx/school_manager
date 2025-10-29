@@ -2,3 +2,4 @@
 server/.env
 weapp_old
 server_old
+target/*

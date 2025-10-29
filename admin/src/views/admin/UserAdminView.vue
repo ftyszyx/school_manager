@@ -170,7 +170,7 @@ onMounted(() => {
         </el-form-item>
         <el-form-item :label="$t('menu.classes')" prop="class_ids">
           <el-select v-model="form.class_ids" multiple class="w-full">
-            <el-option v-for="c in classes" :key="c.id" :label="c.name" :value="c.id" />
+            <el-option v-for="c in classes" :key="c.id" :label="`${c.school_name} ${c.grade}年级${c.class}班`" :value="c.id" />
           </el-select>
         </el-form-item>
         <el-form-item v-if="dialog.mode === 'create'" :label="$t('auth.password')" prop="password"

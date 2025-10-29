@@ -11,6 +11,7 @@ export interface ClassInfo {
   grade: number
   class: number
   school_id: number
+  school_name: string
   status: number
   password?: string
   teacher_infos: ClassUserInfo[]

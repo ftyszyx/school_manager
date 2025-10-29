@@ -3,7 +3,7 @@ use crate::core::app::AppState;
 use crate::core::error::AppError;
 use crate::core::response::ApiResponse;
 use crate::utils::convert::from_str_optional;
-use data_model::{classes, teacher_classes, users};
+use data_model::{classes, schools, teacher_classes, users};
 use salvo::{oapi::extract::*, prelude::*};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
@@ -52,6 +52,7 @@ pub struct ClassInfo {
     pub grade: i32,
     pub class: i32,
     pub school_id: i32,
+    pub school_name: String,
     pub status: i32,
     pub password: String,
     pub teacher_infos: Vec<UserClassInfo>,
@@ -208,6 +209,19 @@ async fn enrich_classes_with_details(
     }
     let class_ids: Vec<i32> = class_models.iter().map(|c| c.id).collect();
 
+    let school_ids: Vec<i32> = class_models.iter().map(|c| c.school_id).collect();
+    let schools_map: HashMap<i32, schools::Model> = if school_ids.is_empty() {
+        HashMap::new()
+    } else {
+        schools::Entity::find()
+            .filter(schools::Column::Id.is_in(school_ids.clone()))
+            .all(&state.db)
+            .await?
+            .into_iter()
+            .map(|s| (s.id, s))
+            .collect()
+    };
+
     let teacher_classes_list = teacher_classes::Entity::find()
         .filter(teacher_classes::Column::ClassId.is_in(class_ids.clone()))
         .all(&state.db)
@@ -241,12 +255,14 @@ async fn enrich_classes_with_details(
                 })
                 .collect();
             
+            let school_name = schools_map.get(&class.school_id).map(|s| s.name.clone()).unwrap_or_default();
             ClassInfo {
                 id: class.id,
                 name: class.name,
                 grade: class.grade,
                 class: class.class,
                 school_id: class.school_id,
+                school_name,
                 status: class.status,
                 password: class.password,
                 teacher_infos,
