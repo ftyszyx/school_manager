@@ -213,6 +213,10 @@
     "grade": "",
     "class": "",
     "password": "",
-    "teachers": ""
+    "teachers": "",
+    "please_select_school": "",
+    "bulk_add": "",
+    "class_count": "",
+    "add_grade": ""
   }
 }

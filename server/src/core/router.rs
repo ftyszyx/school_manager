@@ -47,7 +47,8 @@ pub fn create_router(app_state: AppState) -> Service {
         .push(Router::with_path("/classes/{id}").get(class_api::get_by_id))
         .push(Router::with_path("/classes").post(class_api::add))
         .push(Router::with_path("/classes/{id}").put(class_api::update))
-        .push(Router::with_path("/classes/{id}").delete(class_api::delete));
+        .push(Router::with_path("/classes/{id}").delete(class_api::delete))
+        .push( Router::with_path("/classes/bulk") .post(class_api::add_bulk));
 
     let cors = Cors::new()
     .allow_origin(AllowOrigin::any())

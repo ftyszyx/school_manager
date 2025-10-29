@@ -34,6 +34,11 @@ pub struct ClassUpdatePayload {
     pub password: Option<String>,
 }
 
+#[derive(Deserialize, Debug, Validate, ToSchema)]
+pub struct ClassBulkCreatePayload {
+    pub classes: Vec<ClassCreatePayload>,
+}
+
 #[derive(Deserialize, Serialize, Debug, ToSchema)]
 pub struct UserClassInfo {
     pub user_id: i32,
@@ -65,6 +70,8 @@ pub struct SearchClassesParams {
     pub class: Option<i32>,
     #[serde(deserialize_with = "from_str_optional", default)]
     pub id: Option<i32>,
+    #[serde(deserialize_with = "from_str_optional", default)]
+    pub status: Option<i32>,
 }
 
 // Create Class
@@ -76,6 +83,30 @@ pub async fn add(
     let state = depot.obtain::<AppState>().unwrap();
     let entity = add_impl(&state, req.into_inner()).await?;
     Ok(ApiResponse::success(entity))
+}
+
+#[handler]
+pub async fn add_bulk(
+    depot: &mut Depot,
+    req: JsonBody<ClassBulkCreatePayload>,
+) -> Result<ApiResponse<()>, AppError> {
+    let state = depot.obtain::<AppState>().unwrap();
+    let new_classes: Vec<classes::ActiveModel> = req
+        .classes
+        .iter()
+        .map(|c| classes::ActiveModel {
+            name: Set(c.name.clone()),
+            grade: Set(c.grade),
+            class: Set(c.class),
+            school_id: Set(c.school_id),
+            status: Set(c.status.unwrap_or(0)),
+            password: Set(c.password.clone().unwrap_or("".to_string())),
+            ..Default::default()
+        })
+        .collect();
+
+    classes::Entity::insert_many(new_classes).exec(&state.db).await?;
+    Ok(ApiResponse::success(()))
 }
 
 pub async fn add_impl(state: &AppState, req: ClassCreatePayload) -> Result<classes::Model, AppError> {
@@ -240,6 +271,7 @@ pub async fn get_list_impl(
     crate::filter_if_some!(query, classes::Column::SchoolId, params.school_id, eq);
     crate::filter_if_some!(query, classes::Column::Grade, params.grade, eq);
     crate::filter_if_some!(query, classes::Column::Class, params.class, eq);
+    crate::filter_if_some!(query, classes::Column::Status, params.status, eq);
 
     let paginator = query.paginate(&state.db, page_size);
     let total = paginator.num_items().await?;

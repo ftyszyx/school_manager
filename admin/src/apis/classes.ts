@@ -3,7 +3,8 @@ import type {
   ClassInfo,
   ClassCreateRequest,
   ClassListRequest,
-  ClassUpdateRequest
+  ClassUpdateRequest,
+  ClassBulkCreatePayload
 } from '@/types/classes'
 import request from '@/utils/request'
 
@@ -25,4 +26,8 @@ export const updateClass = async (id: number, data: ClassUpdateRequest): Promise
 
 export const deleteClass = async (id: number): Promise<void> => {
   return (await request.delete(`/api/admin/classes/${id}`)).data
+}
+
+export const createClassesBulk = async (data: ClassBulkCreatePayload): Promise<void> => {
+  return (await request.post('/api/admin/classes/bulk', data)).data
 }

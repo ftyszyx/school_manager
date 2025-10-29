@@ -220,6 +220,10 @@
     "grade": "年级",
     "class": "班级",
     "password": "口令",
-    "teachers": "已分配教师"
+    "teachers": "已分配教师",
+    "please_select_school": "请选择学校",
+    "bulk_add": "批量新增",
+    "class_count": "班级数量",
+    "add_grade": "添加年级"
   }
 }

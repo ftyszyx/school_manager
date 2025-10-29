@@ -21,6 +21,7 @@ export type ClassListRequest = {
   school_id?: number
   grade?: number
   class?: number
+  status?: number
 }&ListParamsReq;
 
 export interface ClassUpdateRequest {
@@ -39,4 +40,8 @@ export interface ClassCreateRequest {
   school_id: number
   status?: number
   password?: string
+}
+
+export interface ClassBulkCreatePayload {
+  classes: ClassCreateRequest[]
 }
