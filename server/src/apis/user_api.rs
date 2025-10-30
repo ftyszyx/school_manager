@@ -17,6 +17,8 @@ use std::collections::HashMap;
 use tracing::info;
 use validator::Validate;
 
+type BoxFuture<'a, T> = std::pin::Pin<Box<dyn std::future::Future<Output = T> + Send + 'a>>;
+
 #[derive(Deserialize, ToSchema)]
 pub struct AuthPayload {
     pub username: String,
@@ -58,6 +60,7 @@ pub struct UserClassInfo {
     pub school_name: String,
     pub grade: i32,
     pub class: i32,
+    pub status: i32,
 }
 
 #[derive(Deserialize, Serialize, Debug, FromQueryResult)]
@@ -105,6 +108,7 @@ pub async fn register(
             role_ids: Some(vec![constants::DEFAULT_ROLE_ID]),
             class_ids: None,
         },
+        None,
     )
     .await?;
     let user_info = get_by_id_impl(&state, new_user.id).await?;
@@ -183,27 +187,36 @@ pub async fn add(
     req: JsonBody<UserCreatePayload>,
 ) -> Result<ApiResponse<users::Model>, AppError> {
     let state = depot.obtain::<AppState>().unwrap();
-    let entity = add_impl(&state, req.into_inner()).await?;
+    let entity = add_impl(&state, req.into_inner(), None).await?;
     Ok(ApiResponse::success(entity))
 }
 
-pub async fn add_impl(state: &AppState, req: UserCreatePayload) -> Result<users::Model, AppError> {
+pub async fn add_impl(
+    state: &AppState,
+    req: UserCreatePayload,
+    insert_callback: Option<
+        Box<dyn for<'a> FnOnce(&'a mut users::ActiveModel) -> BoxFuture<'a, Result<(), AppError>> + Send>,
+    >,
+) -> Result<users::Model, AppError> {
     let txn = state.db.begin().await?;
     let password_hash = bcrypt::hash(req.password, 10)?;
 
     // 1. Create user
-    let new_user = users::ActiveModel {
+    let mut new_user = users::ActiveModel {
         username: Set(req.username),
         password_hash: Set(password_hash),
         ..Default::default()
     };
-    let user = new_user.insert(&txn).await?;
+    if let Some(callback) = insert_callback {
+        callback(&mut new_user).await?;
+    }
+    let user_model = new_user.insert(&txn).await?;
 
     // 2. Assign role
     if let Some(role_ids) = req.role_ids {
         for role_id in role_ids {
             let new_user_role = user_roles::ActiveModel {
-                user_id: Set(user.id),
+                user_id: Set(user_model.id),
                 role_id: Set(role_id),
             };
             new_user_role.insert(&txn).await?;
@@ -215,7 +228,7 @@ pub async fn add_impl(state: &AppState, req: UserCreatePayload) -> Result<users:
         let teacher_class_models: Vec<teacher_classes::ActiveModel> = class_ids
             .into_iter()
             .map(|class_id| teacher_classes::ActiveModel {
-                user_id: Set(user.id),
+                user_id: Set(user_model.id),
                 class_id: Set(class_id),
             })
             .collect();
@@ -227,7 +240,7 @@ pub async fn add_impl(state: &AppState, req: UserCreatePayload) -> Result<users:
     }
 
     txn.commit().await?;
-    Ok(user)
+    Ok(user_model)
 }
 
 // Update User
@@ -418,6 +431,7 @@ async fn enrich_users_with_details(
                             school_name: s.name.clone(),
                             grade: c.grade,
                             class: c.class,
+                            status: c.status,
                         })
                     })
                 })
@@ -478,6 +492,78 @@ pub async fn get_by_id_impl(state: &AppState, id: i32) -> Result<UserInfo, AppEr
     Ok(user_infos.remove(0))
 }
 
+#[derive(Deserialize, Debug, ToSchema)]
+pub struct BindClassPayload {
+    pub class_id: i32,
+    pub password: String,
+}
+
+#[handler]
+pub async fn bind_class(
+    depot: &mut Depot,
+    req: JsonBody<BindClassPayload>,
+) -> Result<ApiResponse<()>, AppError> {
+    let state = depot.obtain::<AppState>().unwrap();
+    let claims = depot.obtain::<Claims>().unwrap();
+
+    let class = classes::Entity::find()
+        .filter(
+            Condition::all()
+                .add(classes::Column::Password.eq(&req.password))
+                .add(classes::Column::Id.eq(req.class_id)),
+        )
+        .one(&state.db)
+        .await?
+        .ok_or_else(|| AppError::not_found("class with this password".to_string(), None))?;
+
+    let existing_binding = teacher_classes::Entity::find()
+        .filter(
+            Condition::all()
+                .add(teacher_classes::Column::UserId.eq(claims.user_id))
+                .add(teacher_classes::Column::ClassId.eq(class.id)),
+        )
+        .one(&state.db)
+        .await?;
+
+    if existing_binding.is_some() {
+        return Err(AppError::Message("Already bound to this class".to_string()));
+    }
+
+    let new_binding = teacher_classes::ActiveModel {
+        user_id: Set(claims.user_id),
+        class_id: Set(class.id),
+    };
+    new_binding.insert(&state.db).await?;
+
+    Ok(ApiResponse::success(()))
+}
+
+#[handler]
+pub async fn unbind_class(
+    depot: &mut Depot,
+    class_id: PathParam<i32>,
+) -> Result<ApiResponse<()>, AppError> {
+    let state = depot.obtain::<AppState>().unwrap();
+    let claims = depot.obtain::<Claims>().unwrap();
+
+    let result = teacher_classes::Entity::delete_many()
+        .filter(
+            Condition::all()
+                .add(teacher_classes::Column::UserId.eq(claims.user_id))
+                .add(teacher_classes::Column::ClassId.eq(class_id.into_inner())),
+        )
+        .exec(&state.db)
+        .await?;
+
+    if result.rows_affected == 0 {
+        return Err(AppError::not_found(
+            "binding for this class".to_string(),
+            None,
+        ));
+    }
+
+    Ok(ApiResponse::success(()))
+}
 
 #[handler]
 pub async fn logout() -> Result<ApiResponse<()>, AppError> {

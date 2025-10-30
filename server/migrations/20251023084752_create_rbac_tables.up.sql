@@ -7,7 +7,9 @@ CREATE TABLE roles (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-INSERT INTO "roles" ( "name", "description") VALUES ( 'admin', '管理员');
+INSERT INTO "roles" ( "id", "name", "description") VALUES ( 1, 'admin', '管理员');
+INSERT INTO "roles" ( "id", "name", "description") VALUES ( 2, 'user', '用户');
+INSERT INTO "roles" ( "id", "name", "description") VALUES ( 3, 'teacher', '教师');
 
 -- Permissions Table
 CREATE TABLE permissions (

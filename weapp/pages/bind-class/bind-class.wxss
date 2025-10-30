@@ -1,0 +1,34 @@
+/* pages/bind-class/bind-class.wxss */
+.container {
+  padding: 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  box-sizing: border-box;
+  background-color: #f7f8fa;
+}
+
+.title {
+  font-size: 48rpx;
+  font-weight: bold;
+  margin-bottom: 20rpx;
+  color: #333;
+}
+
+.desc {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 60rpx;
+  text-align: center;
+}
+
+.van-cell-group {
+  width: 100%;
+  margin-bottom: 40rpx;
+}
+
+.button-wrapper {
+  width: 100%;
+}

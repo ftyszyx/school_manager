@@ -7,6 +7,8 @@ pub struct Config {
     pub redis: RedisConfig,
     pub jwt: JwtConfig,
     pub server: ServerConfig,
+    pub wechat: WechatConfig,
+    pub system: SystemConfig,
 }
 
 #[derive(Debug, Clone)]
@@ -23,6 +25,12 @@ pub struct RedisConfig {
 }
 
 #[derive(Debug, Clone)]
+pub struct WechatConfig {
+    pub app_id: String,
+    pub app_secret: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct JwtConfig {
     pub secret: String,
     pub expire_days: u32,
@@ -34,6 +42,10 @@ pub struct ServerConfig {
     pub port: u16,
 }
 
+#[derive(Debug, Clone)]
+pub struct SystemConfig {
+    pub default_user_password: String,
+}
 
 impl Config {
     pub fn from_env() -> Result<Self> {
@@ -42,6 +54,8 @@ impl Config {
             redis: RedisConfig::from_env()?,
             jwt: JwtConfig::from_env()?,
             server: ServerConfig::from_env()?,
+            wechat: WechatConfig::from_env()?,
+            system: SystemConfig::from_env()?,
         })
     }
 }
@@ -97,6 +111,26 @@ impl ServerConfig {
                 .unwrap_or_else(|_| "3000".to_string())
                 .parse()
                 .context("Invalid LISTEN_PORT value")?,
+        })
+    }
+}
+
+impl WechatConfig {
+    fn from_env() -> Result<Self> {
+        Ok(WechatConfig {
+            app_id: env::var("WECHAT_APP_ID")
+                .context("WECHAT_APP_ID must be set")?,
+            app_secret: env::var("WECHAT_APP_SECRET")
+                .context("WECHAT_APP_SECRET must be set")?,
+        })
+    }
+}
+
+impl SystemConfig {
+    fn from_env() -> Result<Self> {
+        Ok(SystemConfig {
+            default_user_password: env::var("DEFAULT_USER_PASSWORD")
+                .unwrap_or_else(|_| "123456".to_string()),
         })
     }
 }

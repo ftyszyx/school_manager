@@ -8,7 +8,7 @@ edition = "2024"
 tokio = { version = "1.48.0", features = ["full"] }
 # web框架
 # https://salvo.rs/zh-hans/guide/quick-start.html
-salvo = { version = "0.84", features = ["logging","oapi","anyhow","cors","affix-state","test"] }
+salvo = { version = "0.84", features = ["logging","oapi","anyhow","cors","affix-state","test","websocket"] }
 salvo-oapi = { version = "0.84", features = ["swagger-ui"] }
 #utoipa = { version = "5.0.0", features = ["chrono"] } 
 # 序列化
@@ -42,7 +42,13 @@ data_model= { path = "crates/data_model" }
 
 serde_json = "1.0.145"
 redis = { version = "0.32.7", features = ["tokio-comp", "json","aio"]}
+# 通配符
 wildmatch = "2.5.0"
+# 异步流
+futures-util = "0.3.31"
+tokio-stream = "0.1.17"
+# http客户端
+reqwest = { version = "0.12.24", features = ["json"] }
 
 
 [workspace]

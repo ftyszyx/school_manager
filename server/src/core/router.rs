@@ -24,6 +24,8 @@ pub fn create_router(app_state: AppState) -> Service {
         .push(Router::with_path("/me").get(user_api::get_current_user))
         .push(Router::with_path("/me/password").post(user_api::change_password))
         .push(Router::with_path("/logout").post(user_api::logout))
+        .push(Router::with_path("/bind/class").post(user_api::bind_class))
+        .push(Router::with_path("/unbind/class/{class_id}").delete(user_api::unbind_class))
         //roles
         .push(Router::with_path("/roles").get(role_api::get_list))
         .push(Router::with_path("/roles/{id}").get(role_api::get_by_id))
@@ -48,7 +50,10 @@ pub fn create_router(app_state: AppState) -> Service {
         .push(Router::with_path("/classes").post(class_api::add))
         .push(Router::with_path("/classes/{id}").put(class_api::update))
         .push(Router::with_path("/classes/{id}").delete(class_api::delete))
-        .push( Router::with_path("/classes/bulk") .post(class_api::add_bulk));
+        .push( Router::with_path("/classes/bulk") .post(class_api::add_bulk))
+        .push(Router::with_path("/classes/{class_id}/status").put(class_api::update_status))
+        //websocket
+        .push( Router::with_path("/ws/school/{id}").goal(ws_api::school_ws_handler));
 
     let cors = Cors::new()
     .allow_origin(AllowOrigin::any())

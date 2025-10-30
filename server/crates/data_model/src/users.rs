@@ -11,6 +11,13 @@ pub struct Model {
     #[sea_orm(unique)]
     pub username: String,
     pub password_hash: String,
+    #[sea_orm(unique)]
+    pub wechat_openid: Option<String>,
+    #[sea_orm(unique)]
+    pub wechat_unionid: Option<String>,
+    pub wechat_nickname: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub wechat_avatar_url: Option<String>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }

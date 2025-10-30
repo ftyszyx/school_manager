@@ -9,6 +9,7 @@ use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use validator::Validate;
+use crate::apis::auth_middleware::Claims;
 
 #[derive(Deserialize, Debug, Validate, ToSchema)]
 pub struct ClassCreatePayload {
@@ -33,6 +34,7 @@ pub struct ClassUpdatePayload {
     #[validate(length(max = 255))]
     pub password: Option<String>,
 }
+
 
 #[derive(Deserialize, Debug, Validate, ToSchema)]
 pub struct ClassBulkCreatePayload {
@@ -73,6 +75,11 @@ pub struct SearchClassesParams {
     pub id: Option<i32>,
     #[serde(deserialize_with = "from_str_optional", default)]
     pub status: Option<i32>,
+}
+
+#[derive(Deserialize, Debug, Validate, ToSchema)]
+pub struct ClassStatusUpdatePayload {
+    pub status: i32,
 }
 
 // Create Class
@@ -320,4 +327,29 @@ pub async fn get_by_id_impl(state: &AppState, id: i32) -> Result<ClassInfo, AppE
         return Err(AppError::not_found("classes".to_string(), Some(id)));
     }
     Ok(class_infos.remove(0))
+}
+
+#[handler]
+pub async fn update_status(
+    depot: &mut Depot,
+    class_id: PathParam<i32>,
+    req: JsonBody<ClassStatusUpdatePayload>,
+) -> Result<ApiResponse<()>, AppError> {
+    let state = depot.obtain::<AppState>().unwrap();
+    //check if the user is a teacher
+    let claims = depot.obtain::<Claims>().unwrap();
+    let teacher_class = teacher_classes::Entity::find()
+        .filter(teacher_classes::Column::UserId.eq(claims.user_id))
+        .filter(teacher_classes::Column::ClassId.eq(class_id.into_inner()))
+        .one(&state.db)
+        .await?
+        .ok_or_else(|| AppError::not_found("users".to_string(), Some(claims.user_id)))?;
+    let class = classes::Entity::find_by_id(teacher_class.class_id)
+        .one(&state.db)
+        .await?
+        .ok_or_else(|| AppError::not_found("classes".to_string(), Some(teacher_class.class_id)))?;
+    let mut class_active_model: classes::ActiveModel = class.into();
+    class_active_model.status = Set(req.status);
+    class_active_model.update(&state.db).await?;
+    Ok(ApiResponse::success(()))
 }
