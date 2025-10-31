@@ -5,7 +5,7 @@ interface BindClassData {
 	password: string;
 }
 
-Page<BindClassData>({
+Page<BindClassData, WechatMiniprogram.IAnyObject>({
 	data: {
 		password: '',
 	},

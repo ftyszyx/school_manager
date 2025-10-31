@@ -11,7 +11,7 @@ interface ClassDetailData {
 	statusMap: Record<number, { text: string; type: string }>;
 }
 
-Page<ClassDetailData>({
+Page<ClassDetailData, WechatMiniprogram.IAnyObject>({
 	data: {
 		classInfo: null,
 		isTeacher: false,
@@ -83,7 +83,7 @@ Page<ClassDetailData>({
 		});
 
 		(this as any).socketTask.onOpen(() => console.log('WebSocket connected'));
-		(this as any).socketTask.onMessage((res: WechatMiniprogram.OnSocketMessageCallbackResult) => {
+		(this as any).socketTask.onMessage((res: any) => {
 			console.log('Received WebSocket message:', res.data as any);
 			try {
 				const data = JSON.parse(res.data as string);

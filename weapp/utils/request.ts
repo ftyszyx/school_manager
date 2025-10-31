@@ -16,7 +16,7 @@ const request = <T = any>(options: RequestOptions): Promise<T> => {
 			console.warn('API base url is not configured');
 		}
 
-		wx.request<T>({
+		wx.request({
 			url: `${apiBase}${options.url}`,
 			method: (options.method || 'GET') as any,
 			data: options.data || {},
@@ -25,7 +25,7 @@ const request = <T = any>(options: RequestOptions): Promise<T> => {
 				...(token ? { Authorization: `Bearer ${token}` } : {}),
 				...(options.header || {}),
 			},
-			success: (res) => {
+			success: (res: WechatMiniprogram.RequestSuccessCallbackResult<any>) => {
 				if (res.statusCode >= 200 && res.statusCode < 300) {
 					// @ts-ignore: common backend shape { data }
 					resolve((res.data as any).data ?? (res.data as any));

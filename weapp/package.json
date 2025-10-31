@@ -3,13 +3,16 @@
   "version": "1.0.0",
   "description": "school manager",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
   "author": "zyx",
   "license": "ISC",
   "dependencies": {
     "@vant/weapp": "^1.11.7"
   },
   "devDependencies": {
-    "miniprogram-api-typings": "^4.1.0"
+    "miniprogram-api-typings": "^4.1.0",
+    "typescript": "^5.6.3"
   }
 }
