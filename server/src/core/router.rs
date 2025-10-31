@@ -39,7 +39,6 @@ pub fn build_router(app_state: AppState) -> Router {
         .push(Router::with_path("/permissions/{id}").put(permission_api::update))
         .push(Router::with_path("/permissions/{id}").delete(permission_api::delete))
         //schools
-        .push(Router::with_path("/schools").get(school_api::get_list))
         .push(Router::with_path("/schools/{id}").get(school_api::get_by_id))
         .push(Router::with_path("/schools").post(school_api::add))
         .push(Router::with_path("/schools/{id}").put(school_api::update))
@@ -65,6 +64,8 @@ pub fn build_router(app_state: AppState) -> Router {
         .push(Router::with_path("/api/login/wechat").post(wechat_api::wechat_login))
         .get(hello)
         .push(reigster_router)
+        .push(Router::with_path("/classes/school/{school_id}").get(class_api::get_all_class_by_school_id))
+        .push(Router::with_path("/schools").get(school_api::get_list))
         .push(admin_routes)
 }
 

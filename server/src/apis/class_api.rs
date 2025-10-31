@@ -60,6 +60,17 @@ pub struct ClassInfo {
     pub teacher_infos: Vec<UserClassInfo>,
 }
 
+
+#[derive(Deserialize, Debug,Serialize, Validate, ToSchema)]
+pub struct ClassSimpleInfo{
+    pub id: i32,
+    pub name: String,
+    pub grade: i32,
+    pub class: i32,
+    pub school_id: i32,
+    pub status: i32,
+}
+
 #[derive(Deserialize, Debug, Default)]
 pub struct SearchClassesParams {
     #[serde(flatten)]
@@ -301,8 +312,29 @@ pub async fn get_list_impl(
     let class_models = paginator.fetch_page(page - 1).await?;
     
     let list = enrich_classes_with_details(state, class_models).await?;
-
     Ok(PagingResponse { list, total, page })
+}
+
+#[handler]
+pub async fn get_all_class_by_school_id(
+    depot: &mut Depot,
+    school_id: PathParam<i32>,
+) -> Result<ApiResponse<Vec<ClassSimpleInfo>>, AppError> {
+    let state = depot.obtain::<AppState>().unwrap();
+    let school_id = school_id.into_inner();
+    let classes = classes::Entity::find()
+        .filter(classes::Column::SchoolId.eq(school_id))
+        .all(&state.db)
+        .await?;
+    let list = classes.iter().map(|c| ClassSimpleInfo {
+        id: c.id,
+        name: c.name.clone(),
+        grade: c.grade,
+        class: c.class,
+        school_id: c.school_id,
+        status: c.status,
+    }).collect();
+    Ok(ApiResponse::success(list))
 }
 
 // Get Class by ID

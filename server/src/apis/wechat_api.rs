@@ -21,8 +21,8 @@ pub struct WechatLoginPayload {
 #[derive(Deserialize, Debug)]
 struct WechatSessionResponse {
     openid: Option<String>,
-    unionid: Option<String>,
-    // session_key: Option<String>,
+    // unionid: Option<String>,
+    // // session_key: Option<String>,
     errcode: Option<i32>,
     errmsg: Option<String>,
 }
@@ -59,6 +59,7 @@ pub async fn wechat_login(
         .map_err(|_| AppError::InternalError {
             message: "Failed to parse response".to_string(),
         })?;
+    tracing::info!("Wechat session response: {:?}", res);
 
     if let Some(errcode) = res.errcode {
         if errcode != 0 {
@@ -68,7 +69,7 @@ pub async fn wechat_login(
         }
     }
     let openid = res.openid.ok_or(AppError::auth_failed("Invalid code"))?;
-    let unionid = res.unionid.ok_or(AppError::auth_failed("Invalid code"))?;
+    // let unionid = res.unionid.ok_or(AppError::auth_failed("Invalid code"))?;
     // Find or create user
     let user = match users::Entity::find()
         .filter(users::Column::WechatOpenid.eq(&openid))
@@ -98,7 +99,7 @@ pub async fn wechat_login(
                 Some(Box::new(move |active_user| {
                     Box::pin(async move {
                         active_user.wechat_openid = Set(Some(openid));
-                        active_user.wechat_unionid = Set(Some(unionid));
+                        // active_user.wechat_unionid = Set(Some(unionid));
                         Ok(())
                     })
                 })),

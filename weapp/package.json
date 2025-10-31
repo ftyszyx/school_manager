@@ -1,0 +1,15 @@
+{
+  "name": "school",
+  "version": "1.0.0",
+  "description": "school manager",
+  "main": "index.js",
+  "scripts": {},
+  "author": "zyx",
+  "license": "ISC",
+  "dependencies": {
+    "@vant/weapp": "^1.11.7"
+  },
+  "devDependencies": {
+    "miniprogram-api-typings": "^4.1.0"
+  }
+}

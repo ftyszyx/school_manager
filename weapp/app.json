@@ -11,8 +11,17 @@
     "navigationBarTextStyle": "black"
   },
     "usingComponents": {
-
+      "van-button": "@vant/weapp/button",
+      "van-cell": "@vant/weapp/cell",
+      "van-cell-group": "@vant/weapp/cell-group",
+      "van-icon": "@vant/weapp/icon",
+      "van-field": "@vant/weapp/field",
+      "van-empty": "@vant/weapp/empty",
+      "van-card": "@vant/weapp/card",
+      "van-tag": "@vant/weapp/tag",
+      "van-nav-bar": "@vant/weapp/nav-bar",
+      "van-popup": "@vant/weapp/popup",
+      "van-toast": "@vant/weapp/toast"
   },
-  "style": "v2",
   "sitemapLocation": "sitemap.json"
 }
