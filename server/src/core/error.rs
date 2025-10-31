@@ -178,6 +178,7 @@ impl From<anyhow::Error> for AppError {
 #[salvo::async_trait]
 impl Writer for AppError {
     async fn write(self, _req: &mut Request, _depot: &mut Depot, res: &mut Response) {
+        tracing::error!("AppError: {:?}", self.to_string());
         res.status_code = Some(StatusCode::OK);
         res.render(Json(ApiResponse::<String>::error_with_message_and_code(self.to_string(), self.error_code())));
     }

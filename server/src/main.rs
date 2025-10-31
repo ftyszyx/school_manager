@@ -1,9 +1,6 @@
 use salvo::prelude::*;
 use anyhow::{Context };
-
-pub mod apis;
-pub mod core;
-pub mod utils;
+use school_manager_server::core;
 
 #[tokio::main]
 async fn main() {

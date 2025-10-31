@@ -11,7 +11,7 @@ async fn hello(res: &mut Response) {
     res.render(Text::Plain("Hello, world!"));
 }
 
-pub fn create_router(app_state: AppState) -> Service {
+pub fn build_router(app_state: AppState) -> Router {
     let admin_routes = Router::with_path("/api/admin")
          .hoop(auth_middleware::auth)
          .hoop(auth_middleware::error_handler)
@@ -52,20 +52,22 @@ pub fn create_router(app_state: AppState) -> Service {
         .push(Router::with_path("/classes/{id}").delete(class_api::delete))
         .push( Router::with_path("/classes/bulk") .post(class_api::add_bulk))
         .push(Router::with_path("/classes/{class_id}/status").put(class_api::update_status))
-        //websocket
-        .push( Router::with_path("/ws/school/{id}").goal(ws_api::school_ws_handler));
+        .push(Router::with_path("/ws/school/{id}").goal(ws_api::school_ws_handler));
+    Router::new()
+        .hoop(affix_state::inject(app_state))
+        .push(Router::with_path("/api/login").post(user_api::login))
+        .push(Router::with_path("/api/register").post(user_api::register))
+        .push(Router::with_path("/api/login/wechat").post(wechat_api::wechat_login))
+        .get(hello)
+        .push(admin_routes)
+}
 
+pub fn create_router(app_state: AppState) -> Service {
     let cors = Cors::new()
     .allow_origin(AllowOrigin::any())
     .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
     .allow_headers(AllowHeaders::any()).into_handler();
-    let router=Router::new()
-        .hoop(affix_state::inject(app_state))
-        .push(Router::with_path("/api/login").post(user_api::login))
-        .push(Router::with_path("/api/register").post(user_api::register))
-        .get(hello)
-        .push( admin_routes);
-    //添加swagger-ui
+    let router=build_router(app_state);
     let doc=OpenApi::new("app_server_api", "1.0.0")
         .add_security_scheme("bearer", SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer).bearer_format("JWT")))
         .merge_router(&router);
