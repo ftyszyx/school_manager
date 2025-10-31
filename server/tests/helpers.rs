@@ -3,18 +3,21 @@ use salvo::test::ResponseExt;
 use school_manager_server::core::app;
 use school_manager_server::core::router;
 use salvo::prelude::*;
-use serde_json::json;
+use serde_json::{json,Value};
 use std::env;
 use salvo::test::TestClient;
 use school_manager_server::core::constants::*;
 use tokio::sync::{Mutex,MutexGuard};
+use std::sync::Once;
+use std::time::{SystemTime,UNIX_EPOCH};
 
 static DB_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+static LOG_ONCE: Once = Once::new();
 // static LOG_GUARD: OnceCell<WorkerGuard> = OnceCell::new();
 
 pub async fn create_test_app() -> Service {
     dotenvy::from_filename(".env.test").unwrap();
-    let _guard = app::init_log().unwrap();
+    LOG_ONCE.call_once(|| { let _ = app::init_log(); });
     let app_state = app::init_app()
         .await
         .unwrap_or_else(|e| panic!("failed to initialize app:{}", e.to_string()));
@@ -85,4 +88,37 @@ pub fn get_url(path: &str) -> String {
     } else {
         format!("http://{}:{}/{}", host, port, path)
     }
+}
+
+#[allow(dead_code)]
+pub fn unique_name(prefix: &str) -> String {
+    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+    format!("{}_{}", prefix, nanos)
+}
+
+#[allow(dead_code)]
+pub fn bearer(token: &str) -> String {
+    format!("Bearer {}", token)
+}
+
+#[allow(dead_code)]
+pub async fn register_user(app: &Service, username: &str, password: &str) -> Value {
+    let payload = json!({"username": username, "password": password});
+    let response = TestClient::post(get_url("/api/register"))
+        .add_header("content-type", "application/json", true)
+        .json(&payload)
+        .send(app)
+        .await;
+    print_response_body_get_json(response, "register").await
+}
+
+#[allow(dead_code)]
+pub async fn login_user(app: &Service, username: &str, password: &str, label: &str) -> Value {
+    let payload = json!({"username": username, "password": password});
+    let response = TestClient::post(get_url("/api/login"))
+        .add_header("content-type", "application/json", true)
+        .json(&payload)
+        .send(app)
+        .await;
+    print_response_body_get_json(response, label).await
 }
