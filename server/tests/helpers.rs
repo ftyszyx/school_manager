@@ -1,3 +1,4 @@
+use once_cell::sync::Lazy;
 use salvo::test::ResponseExt;
 use school_manager_server::core::app;
 use school_manager_server::core::router;
@@ -6,6 +7,10 @@ use serde_json::json;
 use std::env;
 use salvo::test::TestClient;
 use school_manager_server::core::constants::*;
+use tokio::sync::{Mutex,MutexGuard};
+
+static DB_MUTEX: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
+// static LOG_GUARD: OnceCell<WorkerGuard> = OnceCell::new();
 
 pub async fn create_test_app() -> Service {
     dotenvy::from_filename(".env.test").unwrap();
@@ -21,6 +26,10 @@ pub async fn create_test_app() -> Service {
     println!("init database success");
     let app = router::create_router(app_state);
     app
+}
+
+pub async fn db_lock() -> MutexGuard<'static, ()> {
+    DB_MUTEX.lock().await
 }
 
 

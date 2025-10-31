@@ -7,9 +7,9 @@ CREATE TABLE roles (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-INSERT INTO "roles" ( "id", "name", "description") VALUES ( 1, 'admin', '管理员');
-INSERT INTO "roles" ( "id", "name", "description") VALUES ( 2, 'user', '用户');
-INSERT INTO "roles" ( "id", "name", "description") VALUES ( 3, 'teacher', '教师');
+INSERT INTO "roles" ( "name", "description") VALUES ( 'admin', '管理员');
+INSERT INTO "roles" ( "name", "description") VALUES ( 'user', '用户');
+INSERT INTO "roles" ( "name", "description") VALUES ( 'teacher', '教师');
 
 -- Permissions Table
 CREATE TABLE permissions (
@@ -23,7 +23,7 @@ CREATE TABLE permissions (
     CONSTRAINT "action_check" CHECK (action IN ('READ', 'CREATE', 'UPDATE', 'DELETE','*'))
 );
 
-INSERT INTO "permissions" ( "id", "name", "resource", "action", "description") VALUES ( 1, 'all', '*', '*', '所有资源');
+INSERT INTO "permissions" ( "name", "resource", "action", "description") VALUES ( 'all', '*', '*', '所有资源');
 -- User_Roles Join Table
 CREATE TABLE user_roles (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

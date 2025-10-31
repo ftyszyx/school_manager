@@ -45,6 +45,7 @@ pub struct ServerConfig {
 #[derive(Debug, Clone)]
 pub struct SystemConfig {
     pub default_user_password: String,
+    pub register_allowed: bool,
 }
 
 impl Config {
@@ -131,6 +132,10 @@ impl SystemConfig {
         Ok(SystemConfig {
             default_user_password: env::var("DEFAULT_USER_PASSWORD")
                 .unwrap_or_else(|_| "123456".to_string()),
+            register_allowed: env::var("REGISTER_ALLOWED")
+                .unwrap_or_else(|_| "false".to_string())
+                .parse()
+                .context("Invalid REGISTER_ALLOWED value")?,
         })
     }
 }
