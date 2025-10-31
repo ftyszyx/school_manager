@@ -1,16 +1,19 @@
-const app = getApp();
-
 const request = (options) => {
   return new Promise((resolve, reject) => {
     const token = wx.getStorageSync('token');
+    const app = typeof getApp === 'function' ? getApp() : null;
+    const apiBase = app && app.globalData ? app.globalData.apiBase : '';
+    if (!apiBase) {
+      console.warn('API base url is not configured');
+    }
     
     wx.request({
-      url: `${app.globalData.apiBase}${options.url}`,
+      url: `${apiBase}${options.url}`,
       method: options.method || 'GET',
       data: options.data || {},
       header: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       },
       success: (res) => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
