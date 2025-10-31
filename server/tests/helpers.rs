@@ -90,18 +90,15 @@ pub fn get_url(path: &str) -> String {
     }
 }
 
-#[allow(dead_code)]
 pub fn unique_name(prefix: &str) -> String {
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
     format!("{}_{}", prefix, nanos)
 }
 
-#[allow(dead_code)]
 pub fn bearer(token: &str) -> String {
     format!("Bearer {}", token)
 }
 
-#[allow(dead_code)]
 pub async fn register_user(app: &Service, username: &str, password: &str) -> Value {
     let payload = json!({"username": username, "password": password});
     let response = TestClient::post(get_url("/api/register"))
@@ -112,7 +109,6 @@ pub async fn register_user(app: &Service, username: &str, password: &str) -> Val
     print_response_body_get_json(response, "register").await
 }
 
-#[allow(dead_code)]
 pub async fn login_user(app: &Service, username: &str, password: &str, label: &str) -> Value {
     let payload = json!({"username": username, "password": password});
     let response = TestClient::post(get_url("/api/login"))
