@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus";
-import { formatTime } from "@/utils";
 import { getUsers, createUser, updateUser, deleteUser ,getClasses} from "@/apis";
 import { getRoles } from "@/apis/roles";
 import { useI18n } from "vue-i18n";
-import type { User, Role, UserRoleInfo ,ClassInfo, UserClassInfo} from "@/types";
+import type { User, Role, ClassInfo} from "@/types";
 const rows = ref<User[]>([]);
 const selectedIds = ref<number[]>([]);
 const roles = ref<Role[]>([]);

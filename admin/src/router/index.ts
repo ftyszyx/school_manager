@@ -9,6 +9,12 @@ const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         {
+            path: `${RoutePath.Screen}/:schoolId`,
+            name: RouteName.Screen,
+            component: () => import('@/views/ScreenDisplayView.vue'),
+            props: true
+        },
+        {
             path: '/',
             component: () => import('@/layouts/HomeLayout.vue'),
             children: [

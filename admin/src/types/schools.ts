@@ -6,6 +6,11 @@ export interface School {
   password: string
 }
 
+export interface PublicSchool {
+  id: number
+  name: string
+}
+
 export type SchoolListRequest = {
   name?: string
 }&ListParamsReq;

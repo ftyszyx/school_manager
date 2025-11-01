@@ -67,8 +67,8 @@ pub fn build_router(app_state: AppState) -> Router {
         .push(Router::with_path("/api/login/wechat").post(wechat_api::wechat_login))
         .get(hello)
         .push(reigster_router)
-        .push(Router::with_path("/classes/school/{school_id}").get(class_api::get_all_class_by_school_id))
-        .push(Router::with_path("/schools/all").get(school_api::get_all_schools))
+        .push(Router::with_path("/api/classes/school/{school_id}").get(class_api::get_all_class_by_school_id))
+        .push(Router::with_path("/api/schools/all").get(school_api::get_all_schools))
         .push(admin_routes)
 }
 

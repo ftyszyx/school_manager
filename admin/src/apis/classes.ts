@@ -12,6 +12,10 @@ export const getClasses = async (params: ClassListRequest): Promise<PagingRespon
   return (await request.get('/api/admin/classes', { params })).data
 }
 
+export const getClassesBySchool = async (schoolId: number): Promise<ClassInfo[]> => {
+  return (await request.get(`/api/classes/school/${schoolId}`)).data
+}
+
 export const getClass = async (id: number): Promise<ClassInfo> => {
   return (await request.get(`/api/admin/classes/${id}`)).data
 }

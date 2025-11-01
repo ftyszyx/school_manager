@@ -9,6 +9,7 @@ export enum RouteName {
     AdminSchools = 'schools',
     AdminClasses = 'classes',
     AdminPermissions = 'permissions',
+    Screen = 'screen',
 }
 
 
@@ -23,4 +24,5 @@ export enum RoutePath {
     AdminSchools = '/' + RouteName.Admin + '/' + RouteName.AdminSchools,
     AdminClasses = '/' + RouteName.Admin + '/' + RouteName.AdminClasses,
     AdminPermissions = '/' + RouteName.Admin + '/' + RouteName.AdminPermissions,
+    Screen = '/' + RouteName.Screen,
 }
