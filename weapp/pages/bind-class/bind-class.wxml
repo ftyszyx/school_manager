@@ -1,19 +1,37 @@
 <!--pages/bind-class/bind-class.wxml-->
 <view class="container">
-  <view class="title">加入班级</view>
-  <view class="desc">请输入老师提供的班级口令，加入班级。</view>
-  <van-cell-group inset>
-    <van-field
-      value="{{ password }}"
-      center
-      clearable
-      label="班级口令"
-      placeholder="请输入班级口令"
-      border="{{ false }}"
-      bind:input="onPasswordInput"
-    />
-  </van-cell-group>
-  <view class="button-wrapper">
-    <van-button type="primary" bind:click="onSubmit" block round>立即加入</van-button>
-  </view>
+	<view class="title">加入班级</view>
+	<view class="desc">请选择您要加入的班级，并输入老师提供的班级口令。</view>
+	<van-cell-group inset>
+		<van-cell
+			title="选择班级"
+			is-link
+			value="{{ selectedClass ? selectedClass.name : '请选择' }}"
+			bind:click="openClassPicker"
+		/>
+		<van-field
+			v-if="selectedClass"
+			value="{{ password }}"
+			center
+			clearable
+			label="班级口令"
+			placeholder="请输入班级口令"
+			border="{{ false }}"
+			bind:input="onPasswordInput"
+		/>
+	</van-cell-group>
+	<view class="button-wrapper">
+		<van-button type="primary" bind:click="onSubmit" block round>立即加入</van-button>
+	</view>
+
+	<!-- Class Picker Popup -->
+	<van-popup show="{{ showPicker }}" position="bottom" custom-style="height: 40%;">
+		<van-picker
+			show-toolbar
+			title="选择班级"
+			columns="{{ classColumns }}"
+			bind:cancel="closeClassPicker"
+			bind:confirm="onClassConfirm"
+		/>
+	</van-popup>
 </view>

@@ -57,6 +57,7 @@
 }
 
 .class-list .van-card {
+  margin-top: 10px;
   margin-bottom: 20rpx;
   border-radius: 8rpx;
   background-color: #fff;
@@ -64,4 +65,13 @@
 
 .ml-2 {
   margin-left: 10rpx;
+}
+
+.fab-button {
+  position: fixed !important;
+  right: 40rpx;
+  bottom: 80rpx;
+  width: 100rpx !important;
+  height: 100rpx !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }

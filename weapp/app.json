@@ -22,7 +22,8 @@
       "van-tag": "@vant/weapp/tag",
       "van-nav-bar": "@vant/weapp/nav-bar",
       "van-popup": "@vant/weapp/popup",
-      "van-toast": "@vant/weapp/toast"
+      "van-toast": "@vant/weapp/toast",
+      "van-picker": "@vant/weapp/picker"
   },
   "sitemapLocation": "sitemap.json"
 }
