@@ -8,11 +8,11 @@ interface RequestOptions {
   header?: Record<string, string>;
 }
 const handlerRelogin = () => {
-	console.log("handlerRelogin");
+  console.log("handlerRelogin");
   wx.removeStorageSync("token");
   const app = getApp<IAppOption>();
   if (app && app.login) {
-	console.log("app.login");
+    console.log("app.login");
     app.login();
   }
 };
@@ -43,7 +43,13 @@ const request = <T = any>(options: RequestOptions): Promise<T> => {
             reject(res.data);
             return;
           }
-          resolve((res.data as any).data ?? (res.data as any));
+          console.log("res.data", res.data);
+          if (res.data.code === APP_OK) {
+            resolve((res.data as any).data ?? (res.data as any));
+          } else {
+            wx.showToast({ title: (res.data as any).message || "操作失败", icon: "none" });
+            reject(res.data);
+          }
         } else {
           if (res.statusCode === 401) {
             handlerRelogin();

@@ -7,17 +7,21 @@
 		</van-cell>
 		<van-field
 			label="昵称"
-			model:value="{{ userInfo.wechat_nickname }}"
+			value="{{ userInfo.wechat_nickname }}"
 			placeholder="请输入昵称"
 			input-align="right"
 			type="nickname"
+			data-field="wechat_nickname"
+			bind:input="onFieldInput"
 		/>
 		<van-field
 			label="手机号"
-			model:value="{{ userInfo.phone }}"
+			value="{{ userInfo.phone }}"
 			placeholder="请输入手机号"
 			input-align="right"
 			type="tel"
+			data-field="phone"
+			bind:input="onFieldInput"
 		/>
 		<van-cell title="绑定学校" value="{{ userInfo.school_name || '未绑定' }}" is-link bind:click="showSchoolPicker" />
 	</van-cell-group>

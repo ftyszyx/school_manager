@@ -64,5 +64,15 @@ module.exports = {
 				</view>
 			</van-card>
 		</view>
+
+		<!-- Floating Action Button to Add Class -->
+		<van-button
+			type="primary"
+			round
+			custom-class="fab-button"
+			bind:click="onAddClass"
+		>
+			<van-icon name="plus" />
+		</van-button>
 	</block>
 </view>

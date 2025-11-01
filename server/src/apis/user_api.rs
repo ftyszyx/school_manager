@@ -272,14 +272,14 @@ pub async fn update(
 pub async fn update_my_info(
     depot: &mut Depot,
     req: JsonBody<UserUpdatePayload>,
-) -> Result<ApiResponse<users::Model>, AppError> {
+) -> Result<ApiResponse<()>, AppError> {
     let state = depot.obtain::<AppState>().unwrap();
     let claims = depot.obtain::<Claims>().unwrap();
     let mut req = req.into_inner();
     req.role_ids=None;
     req.school_id=None;
-    let user = update_impl(&state, claims.user_id, req).await?;
-    Ok(ApiResponse::success(user))
+    update_impl(&state, claims.user_id, req).await?;
+    Ok(ApiResponse::success(()))
 }
 
 pub async fn update_impl(
@@ -298,6 +298,16 @@ pub async fn update_impl(
     if let Some(password) = req.password {
         let hashed_password = bcrypt::hash(password, 10)?;
         user_active_model.password_hash = Set(hashed_password);
+    }
+
+    if let Some(wechat_avatar_url) = req.wechat_avatar_url {
+        user_active_model.wechat_avatar_url = Set(Some(wechat_avatar_url));
+    }
+    if let Some(wechat_nickname) = req.wechat_nickname {
+        user_active_model.wechat_nickname = Set(Some(wechat_nickname));
+    }
+    if let Some(phone) = req.phone {
+        user_active_model.phone = Set(Some(phone));
     }
 
     if let Some(role_ids) = req.role_ids {
@@ -633,9 +643,7 @@ pub async fn bind_school(
         .one(&state.db)
         .await?
         .ok_or_else(|| AppError::not_found("school".to_string(), Some(req.school_id)))?;
-    let is_valid = verify(&req.password, &school.password)
-        .map_err(|_| AppError::auth_failed("School password incorrect"))?;
-    if !is_valid {
+    if school.password!=req.password {
         return Err(AppError::auth_failed("School password incorrect"));
     }
     let user = users::Entity::find_by_id(claims.user_id)

@@ -125,17 +125,15 @@ pub async fn get_list(
 #[handler]
 pub async fn get_all_schools(
     depot: &mut Depot,
-    req: &mut Request,
-) -> Result<ApiResponse<PagingResponse<SchoolInfo>>, AppError> {
+) -> Result<ApiResponse<Vec<SchoolInfo>>, AppError> {
     let state = depot.obtain::<AppState>().unwrap();
-    let params = req.parse_queries::<SearchSchoolsParams>()?;
-    let res= get_list_impl(&state, params).await?;
-    let list= res.list.into_iter().map(|s| SchoolInfo {
+    let schools = schools::Entity::find().all(&state.db).await?;
+    let list= schools.into_iter().map(|s| SchoolInfo {
         id: s.id,
         name: s.name.clone(),
-        password: None,
+        password:None
     }).collect();
-    Ok(ApiResponse::success(PagingResponse { list, total: res.total, page: res.page }))
+    Ok(ApiResponse::success(list))
 }
 
 pub async fn get_list_impl(

@@ -19,6 +19,9 @@ Page({
 	async fetchUserInfo() {
 		try {
 			const userInfo = await getCurrentUser();
+			// Ensure fields are not null for data binding
+			userInfo.wechat_nickname = userInfo.wechat_nickname || '';
+			userInfo.phone = userInfo.phone || '';
 			this.setData({ userInfo });
 		} catch (error) {
 			wx.showToast({ title: '加载用户信息失败', icon: 'none' });
@@ -46,7 +49,16 @@ Page({
 		});
 	},
 
-	showSchoolPicker() {
+	onFieldInput(e: WechatMiniprogram.CustomEvent) {
+		const { field } = e.currentTarget.dataset;
+		const value = e.detail;
+		this.setData({
+			[`userInfo.${field}`]: value || '',
+		});
+	},
+
+	async showSchoolPicker() {
+		await this.fetchSchools();
 		this.setData({ showPicker: !this.data.showPicker });
 	},
 
@@ -85,12 +97,13 @@ Page({
 
 	async onSave() {
 		try {
+			console.log("onsave phone",this.data.userInfo.phone)
+			console.log('onSave', this.data.userInfo);
 			const payload: any = {
 				wechat_nickname: this.data.userInfo.wechat_nickname,
 				phone: this.data.userInfo.phone,
 				wechat_avatar_url: this.data.userInfo.wechat_avatar_url,
 			};
-
 			await updateMyInfo(payload);
 			wx.showToast({ title: '保存成功', icon: 'success' });
 			wx.navigateBack();
