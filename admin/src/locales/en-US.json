@@ -41,7 +41,9 @@
     "description": "",
     "available": "",
     "assigned": "",
-    "status": ""
+    "status": "",
+    "operations": "",
+    "password": ""
   },
   "auth": {
     "password_mismatch": "Passwords do not match",
@@ -218,5 +220,12 @@
     "bulk_add": "",
     "class_count": "",
     "add_grade": ""
+  },
+  "user": {
+    "username": "",
+    "school_name": "",
+    "wechat_info": "",
+    "roles": "",
+    "created_at": ""
   }
 }

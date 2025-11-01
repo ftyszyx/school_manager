@@ -113,35 +113,46 @@ onMounted(() => {
       <el-table :data="rows" stripe size="large" style="width: 100%" @selection-change="onSelChange">
         <el-table-column type="selection" width="50" />
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column :label="$t('auth.username')" min-width="160">
+        <el-table-column prop="username" :label="$t('user.username')" width="180" />
+        <el-table-column prop="school_name" :label="$t('user.school_name')" width="180" />
+        <el-table-column :label="$t('user.wechat_info')" width="220">
           <template #default="{ row }">
-            <div class="flex items-center gap-2">
-              <span class="text-gray-800 break-all">{{ row.username }}</span>
+            <div v-if="row.wechat_nickname" class="wechat-info">
+              <el-image
+                style="width: 40px; height: 40px; border-radius: 50%"
+                :src="row.wechat_avatar_url"
+                fit="cover"
+                :preview-src-list="[row.wechat_avatar_url]"
+                preview-teleported
+              />
+              <span class="wechat-nickname">{{ row.wechat_nickname }}</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('menu.roles')" min-width="140">
-          <template #default="{ row }">{{
-            row.role_infos
-              .map((it: UserRoleInfo) => it.role_name)
-              .filter(Boolean)
-              .join(", ")
-          }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('menu.classes')" min-width="140">
-          <template #default="{ row }">{{
-            row.class_infos
-              .map((it: UserClassInfo) => it.class_name)
-              .filter(Boolean)
-              .join(", ")
-          }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('orders.created')" min-width="180">
-          <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('common.actions')" width="200" fixed="right">
+        <el-table-column prop="role_infos" :label="$t('user.roles')">
           <template #default="{ row }">
-            <el-button size="small" @click="openEdit(row)">{{ $t("common.edit") }}</el-button>
+            <el-tag v-for="role in row.role_infos" :key="role.role_id" class="role-tag">
+              {{ role.role_name }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="class_infos" :label="$t('menu.classes')">
+          <template #default="{ row }">
+            <el-tag v-for="cls in row.class_infos" :key="cls.class_id" class="class-tag">
+              {{ cls.class_name }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="created_at" :label="$t('user.created_at')" width="180">
+          <template #default="{ row }">
+            {{ new Date(row.created_at).toLocaleString() }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('common.operations')" width="150">
+          <template #default="{ row }">
+            <el-button type="primary" size="small" @click="openEdit(row)">
+              {{ $t('common.edit') }}
+            </el-button>
             <el-button size="small" type="danger" @click="del(row.id)">{{ $t("common.delete") }}</el-button>
           </template>
         </el-table-column>
@@ -185,4 +196,19 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.role-tag,
+.class-tag {
+	margin-right: 5px;
+	margin-bottom: 5px;
+}
+
+.wechat-info {
+	display: flex;
+	align-items: center;
+}
+
+.wechat-nickname {
+	margin-left: 10px;
+}
+</style>

@@ -32,7 +32,7 @@ const formRef = ref<FormInstance>()
 const bulkAddDialog = reactive({
   visible: false,
   schoolId: undefined as number | undefined,
-  grades: [{  classCount: 4 }]
+  grades: [{ grade:1, classCount: 4 }]
 })
 
 const statusOptions = [
@@ -113,13 +113,13 @@ const resetFilters = () => {
 }
 
 const openBulkAdd = () => {
-  bulkAddDialog.grades = [{  classCount: 4 }]
+  bulkAddDialog.grades = [{ grade:1, classCount: 4 }]
   bulkAddDialog.schoolId = undefined
   bulkAddDialog.visible = true
 }
 
 const addGrade = () => {
-  bulkAddDialog.grades.push({  classCount: 4 })
+  bulkAddDialog.grades.push({ grade:bulkAddDialog.grades.length + 1, classCount: 4 })
 }
 
 const removeGrade = (index: number) => {
@@ -137,9 +137,9 @@ const handleBulkSubmit = async () => {
     for (let j = 1; j <= gradinfo.classCount; j++) {
       classesToCreate.push({
         school_id: bulkAddDialog.schoolId,
-        grade: i,
+        grade: gradinfo.grade,
         class: j,
-        name: `${i}年级${j}班`,
+        name: `${gradinfo.grade}年级${j}班`,
         password: generatePassword(),
       })
     }
@@ -353,8 +353,9 @@ onMounted(() => {
         </el-form-item>
 
         <div v-for="(item, index) in bulkAddDialog.grades" :key="index" class="bg-slate-50 p-4 rounded-md mb-4">
-          <el-form-item :label="`${$t('classes.grade')} ${index + 1}`">
+          <el-form-item :label="`${$t('classes.grade')} `">
             <div class="flex items-center w-full">
+              <el-input-number v-model="item.grade" :min="1" class="mr-auto" />
               <span class="mr-4 text-gray-500 flex-shrink-0">{{ $t('classes.class_count') }}</span>
               <el-input-number v-model="item.classCount" :min="1" class="mr-auto" />
               <el-button type="danger" @click="removeGrade(index)">{{ $t('common.delete') }}</el-button>

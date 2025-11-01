@@ -34,7 +34,9 @@
     "description": "描述",
     "available": "可用",
     "assigned": "已分配",
-    "status": "状态"
+    "status": "状态",
+    "operations": "操作",
+    "password": "密码"
   },
   "auth": {
     "welcome": "欢迎",
@@ -225,5 +227,12 @@
     "bulk_add": "批量新增",
     "class_count": "班级数量",
     "add_grade": "添加年级"
+  },
+  "user": {
+    "username": "用户名",
+    "school_name": "学校名称",
+    "wechat_info": "微信信息",
+    "roles": "角色",
+    "created_at": "创建时间"
   }
 }

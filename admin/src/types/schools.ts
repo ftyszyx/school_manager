@@ -3,6 +3,7 @@ import type { ListParamsReq } from "./api";
 export interface School {
   id: number
   name: string
+  password: string
 }
 
 export type SchoolListRequest = {
@@ -11,8 +12,10 @@ export type SchoolListRequest = {
 
 export interface SchoolUpdateRequest {
   name?: string
+  password?: string
 }
 
 export interface SchoolCreateRequest {
   name: string
+  password: string
 }

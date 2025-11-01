@@ -50,6 +50,7 @@ pub async fn add(
 pub async fn add_impl(state: &AppState, req: SchoolCreatePayload) -> Result<schools::Model, AppError> {
     let new_school = schools::ActiveModel {
         name: Set(req.name),
+        password: Set(req.password),
         ..Default::default()
     };
     let school = new_school.insert(&state.db).await?;
@@ -82,6 +83,10 @@ pub async fn update_impl(
 
     if let Some(name) = req.name {
         school_active_model.name = Set(name);
+    }
+
+    if let Some(password) = req.password {
+        school_active_model.password = Set(password);
     }
 
     let school = school_active_model.update(&state.db).await?;

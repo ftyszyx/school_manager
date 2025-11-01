@@ -15,7 +15,7 @@ const schools = ref<School[]>([])
 const loading = ref(true)
 const showModal = ref(false)
 const isEdit = ref(false)
-const currentSchool = ref<SchoolCreateRequest | SchoolUpdateRequest>({ name: '' })
+const currentSchool = ref<SchoolCreateRequest | SchoolUpdateRequest>({ name: '', password: '' })
 const currentSchoolId = ref<number | null>(null)
 const page = ref(1)
 const pageSize = ref(20)
@@ -23,7 +23,14 @@ const total = ref(0)
 const formRef = ref<FormInstance>()
 
 const rules = reactive<FormRules>({
-  name: [{ required: true, message: 'Name is required', trigger: 'blur' }]
+  name: [{ required: true, message: 'Name is required', trigger: 'blur' }],
+  password: [
+    {
+      required: true,
+      message: 'Password is required for new schools',
+      trigger: 'blur'
+    }
+  ]
 })
 
 const fetchSchools = async () => {
@@ -41,7 +48,7 @@ const fetchSchools = async () => {
 
 const handleAdd = () => {
   isEdit.value = false
-  currentSchool.value = { name: '' }
+  currentSchool.value = { name: '', password: '' }
   currentSchoolId.value = null
   showModal.value = true
 }
@@ -49,7 +56,7 @@ const handleAdd = () => {
 const handleEdit = (school: School) => {
   isEdit.value = true
   currentSchoolId.value = school.id
-  currentSchool.value = { name: school.name }
+  currentSchool.value = { name: school.name, password: school.password }
   showModal.value = true
 }
 
@@ -75,11 +82,17 @@ const handleSubmit = async () => {
   if (!valid) return
 
   try {
+    const payload = { ...currentSchool.value }
+    // If password is empty on edit, don't send it
+    if (isEdit.value && !payload.password) {
+      delete payload.password
+    }
+
     if (isEdit.value && currentSchoolId.value) {
-      await updateSchool(currentSchoolId.value, currentSchool.value as SchoolUpdateRequest)
+      await updateSchool(currentSchoolId.value, payload as SchoolUpdateRequest)
       ElMessage.success(t('common.save'))
     } else {
-      await createSchool(currentSchool.value as SchoolCreateRequest)
+      await createSchool(payload as SchoolCreateRequest)
       ElMessage.success(t('common.created'))
     }
     showModal.value = false
@@ -87,6 +100,21 @@ const handleSubmit = async () => {
   } catch (error) {
     console.error(error)
   }
+}
+
+const copyPassword = (password: string) => {
+  navigator.clipboard.writeText(password).then(() => {
+    ElMessage.success(t('common.copied'))
+  })
+}
+
+const generatePassword = () => {
+  const chars = '0123456789'
+  let pass = ''
+  for (let i = 0; i < 6; i++) {
+    pass += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  currentSchool.value.password = pass
 }
 
 const handlePageChange = (p: number) => {
@@ -117,6 +145,19 @@ onMounted(() => {
       <el-table :data="schools" v-loading="loading" stripe size="large" style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column :label="$t('common.name')" prop="name" min-width="160" />
+        <el-table-column :label="$t('common.password')" prop="password" min-width="200">
+			<template #default="{ row }">
+				<div class="flex items-center">
+					<span>{{ row.password }}</span>
+					<el-button
+						type="text"
+						icon="CopyDocument"
+						@click="copyPassword(row.password)"
+						class="ml-2"
+					></el-button>
+				</div>
+			</template>
+		</el-table-column>
         <el-table-column :label="$t('common.actions')" width="200" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="handleEdit(row)">{{ $t("common.edit") }}</el-button>
@@ -142,6 +183,13 @@ onMounted(() => {
       <el-form ref="formRef" :model="currentSchool" :rules="rules" label-width="140px">
         <el-form-item :label="$t('common.name')" prop="name">
           <el-input v-model="currentSchool.name" />
+        </el-form-item>
+        <el-form-item :label="$t('common.password')" prop="password">
+          <el-input v-model="currentSchool.password" show-password>
+            <template #append>
+              <el-button @click="generatePassword">{{ $t('common.generate') }}</el-button>
+            </template>
+          </el-input>
         </el-form-item>
       </el-form>
       <template #footer>
