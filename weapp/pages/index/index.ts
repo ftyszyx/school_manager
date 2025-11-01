@@ -43,6 +43,10 @@ Page<IndexData, WechatMiniprogram.IAnyObject>({
 		}
 	},
 
+	onGoToProfile() {
+		wx.navigateTo({ url: '/pages/profile/profile' });
+	},
+
 	async fetchData() {
 		this.setData({ loading: true });
 		try {
@@ -98,6 +102,15 @@ Page<IndexData, WechatMiniprogram.IAnyObject>({
 	onPullDownRefresh() {
 		this.fetchData().then(() => wx.stopPullDownRefresh());
 	},
+
+	slice(str: string, length: number) {
+		console.log('slice', str, length);
+		if (typeof str !== 'string' || str.length === 0) {
+			return '';
+		}
+		return str.slice(0, length);
+	},
+
 });
 
 

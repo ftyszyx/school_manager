@@ -1,0 +1,55 @@
+<view class="container">
+	<van-cell-group inset title="基本信息">
+		<van-cell title="头像" center>
+			<button class="avatar-wrapper" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
+				<image class="avatar" src="{{userInfo.wechat_avatar_url || '../../assets/default-avatar.png'}}" />
+			</button>
+		</van-cell>
+		<van-field
+			label="昵称"
+			model:value="{{ userInfo.wechat_nickname }}"
+			placeholder="请输入昵称"
+			input-align="right"
+			type="nickname"
+		/>
+		<van-field
+			label="手机号"
+			model:value="{{ userInfo.phone }}"
+			placeholder="请输入手机号"
+			input-align="right"
+			type="tel"
+		/>
+		<van-cell title="绑定学校" value="{{ userInfo.school_name || '未绑定' }}" is-link bind:click="showSchoolPicker" />
+	</van-cell-group>
+
+	<view class="save-button-container">
+		<van-button type="primary" block bind:click="onSave">保存信息</van-button>
+	</view>
+
+	<!-- Bind School Popup -->
+	<van-popup show="{{ showPicker }}" position="bottom" custom-style="height: 40%;">
+		<van-picker
+			show-toolbar
+			title="选择学校"
+			columns="{{ schoolColumns }}"
+			bind:cancel="showSchoolPicker"
+			bind:confirm="onSchoolConfirm"
+		/>
+	</van-popup>
+
+	<van-popup show="{{ showPasswordModal }}" position="center" custom-style="width: 80%; border-radius: 8px;">
+		<view class="password-modal">
+			<view class="password-modal-title">请输入学校密码</view>
+			<van-field
+				model:value="{{ schoolPassword }}"
+				placeholder="请输入密码"
+				password
+				focus
+			/>
+			<view class="password-modal-actions">
+				<van-button type="default" bind:click="showPasswordModal" custom-class="modal-button">取消</van-button>
+				<van-button type="primary" bind:click="onBindSchool" custom-class="modal-button">确认</van-button>
+			</view>
+		</view>
+	</van-popup>
+</view>

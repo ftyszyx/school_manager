@@ -16,18 +16,35 @@ pub struct Model {
     #[sea_orm(unique)]
     pub wechat_unionid: Option<String>,
     pub wechat_nickname: Option<String>,
+    #[sea_orm(unique)]
+    pub phone: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]
     pub wechat_avatar_url: Option<String>,
+    pub school_id: Option<i32>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::schools::Entity",
+        from = "Column::SchoolId",
+        to = "super::schools::Column::Id",
+        on_update = "NoAction",
+        on_delete = "SetNull"
+    )]
+    Schools,
     #[sea_orm(has_many = "super::teacher_classes::Entity")]
     TeacherClasses,
     #[sea_orm(has_many = "super::user_roles::Entity")]
     UserRoles,
+}
+
+impl Related<super::schools::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Schools.def()
+    }
 }
 
 impl Related<super::teacher_classes::Entity> for Entity {

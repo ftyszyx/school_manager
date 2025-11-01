@@ -3,6 +3,7 @@ import { login } from './utils/api';
 
 App<IAppOption>({
 	onLaunch() {
+		console.log('onLaunch');
 		this.autoLogin();
 	},
 

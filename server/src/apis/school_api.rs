@@ -11,17 +11,20 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize, Debug, ToSchema)]
 pub struct SchoolCreatePayload {
     pub name: String,
+    pub password: String,
 }
 
 #[derive(Deserialize, Debug, ToSchema)]
 pub struct SchoolUpdatePayload {
     pub name: Option<String>,
+    pub password: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug, FromQueryResult, ToSchema)]
 pub struct SchoolInfo {
     pub id: i32,
     pub name: String,
+    pub password: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -112,6 +115,22 @@ pub async fn get_list(
     let params = req.parse_queries::<SearchSchoolsParams>()?;
     let list = get_list_impl(&state, params).await?;
     Ok(ApiResponse::success(list))
+}
+
+#[handler]
+pub async fn get_all_schools(
+    depot: &mut Depot,
+    req: &mut Request,
+) -> Result<ApiResponse<PagingResponse<SchoolInfo>>, AppError> {
+    let state = depot.obtain::<AppState>().unwrap();
+    let params = req.parse_queries::<SearchSchoolsParams>()?;
+    let res= get_list_impl(&state, params).await?;
+    let list= res.list.into_iter().map(|s| SchoolInfo {
+        id: s.id,
+        name: s.name.clone(),
+        password: None,
+    }).collect();
+    Ok(ApiResponse::success(PagingResponse { list, total: res.total, page: res.page }))
 }
 
 pub async fn get_list_impl(

@@ -1,0 +1,34 @@
+.container {
+	padding-top: 20rpx;
+}
+.avatar-wrapper {
+	padding: 0;
+	margin: 0;
+	width: 100rpx;
+	height: 100rpx;
+	border-radius: 50%;
+	overflow: hidden;
+}
+.avatar {
+	width: 100%;
+	height: 100%;
+}
+.save-button-container {
+	margin: 40rpx;
+}
+.password-modal {
+	padding: 32rpx;
+}
+.password-modal-title {
+	text-align: center;
+	font-size: 32rpx;
+	margin-bottom: 24rpx;
+}
+.password-modal-actions {
+	display: flex;
+	margin-top: 24rpx;
+	gap: 16rpx;
+}
+.modal-button {
+	flex: 1;
+}

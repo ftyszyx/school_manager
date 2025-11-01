@@ -25,7 +25,9 @@ pub fn build_router(app_state: AppState) -> Router {
         .push(Router::with_path("/me/password").post(user_api::change_password))
         .push(Router::with_path("/logout").post(user_api::logout))
         .push(Router::with_path("/bind/class").post(user_api::bind_class))
+        .push(Router::with_path("/bind/school").post(user_api::bind_school))
         .push(Router::with_path("/unbind/class/{class_id}").delete(user_api::unbind_class))
+        .push(Router::with_path("/me").put(user_api::update_my_info))
         //roles
         .push(Router::with_path("/roles").get(role_api::get_list))
         .push(Router::with_path("/roles/{id}").get(role_api::get_by_id))
@@ -43,6 +45,7 @@ pub fn build_router(app_state: AppState) -> Router {
         .push(Router::with_path("/schools").post(school_api::add))
         .push(Router::with_path("/schools/{id}").put(school_api::update))
         .push(Router::with_path("/schools/{id}").delete(school_api::delete))
+        .push(Router::with_path("/schools").get(school_api::get_list))
         //classes
         .push(Router::with_path("/classes").get(class_api::get_list))
         .push(Router::with_path("/classes/{id}").get(class_api::get_by_id))
@@ -65,7 +68,7 @@ pub fn build_router(app_state: AppState) -> Router {
         .get(hello)
         .push(reigster_router)
         .push(Router::with_path("/classes/school/{school_id}").get(class_api::get_all_class_by_school_id))
-        .push(Router::with_path("/schools").get(school_api::get_list))
+        .push(Router::with_path("/schools/all").get(school_api::get_all_schools))
         .push(admin_routes)
 }
 

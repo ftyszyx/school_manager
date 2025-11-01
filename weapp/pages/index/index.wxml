@@ -1,43 +1,68 @@
 <!--pages/index/index.wxml-->
+<wxs module="tools">
+var slice = function (str, length) {
+  if (typeof str !== 'string' || str.length === 0) {
+    return '';
+  }
+  return str.slice(0, length);
+};
+
+module.exports = {
+  slice: slice,
+};
+</wxs>
+
 <view class="container">
-  <!-- 用户未登录时显示 -->
-  <view wx:if="{{!hasUserInfo && canIUseGetUserProfile}}" class="login-prompt">
-    <view class="login-text">为了提供更好的服务，我们需要获取您的头像和昵称</view>
-    <button class="login-button" bindtap="getUserProfile"> 微信一键登录 </button>
-  </view>
+	<block wx:if="{{hasUserInfo}}">
+		<view class="header">
+			<view class="user-info">
+				<image
+					class="avatar"
+					src="{{userInfo.wechat_avatar_url || '../../assets/default-avatar.png'}}"
+					mode="cover"
+				></image>
+				<view class="user-details">
+					<text class="nickname">{{userInfo.wechat_nickname || tools.slice(userInfo.username, 10)}}</text>
+					<text class="school-name" wx:if="{{userInfo.school_name}}">{{userInfo.school_name}}</text>
+				</view>
+			</view>
+			<van-button type="default" size="small" bind:click="onGoToProfile" custom-class="profile-button">
+				<van-icon name="setting-o" />
+			</van-button>
+		</view>
 
-  <!-- 用户已登录 -->
-  <block wx:else>
-    <view class="header">
-      <view class="user-info">
-        <image class="avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
-        <text class="nickname">{{userInfo.nickName}}</text>
-      </view>
-      <van-button type="primary" size="small" bind:click="onAddClass">绑定班级</van-button>
-    </view>
-    <view class="class-list-title">我加入的班级</view>
-    <van-empty wx:if="{{classes.length === 0 && !loading}}" description="暂未加入任何班级" />
-    <view class="class-list" wx:else>
-      <van-card
-        wx:for="{{classes}}"
-        wx:key="id"
-        title="{{item.name}}"
-        desc="学校: {{item.school.name}}" 
-        bind:click="onClassClick"
-        data-id="{{item.id}}"
-      >
-        <view slot="tags">
-          <van-tag type="primary">年级: {{item.grade}}</van-tag>
-          <van-tag type="success" class="ml-2">班级: {{item.class_num}}</van-tag>
-        </view>
-        <view slot="price">
-           <van-tag plain type="primary" class="ml-2" size="medium">{{item.student_count}} 人</van-tag>
-        </view>
-        <view slot="footer">
-          <van-button size="mini" type="danger" catchtap="onUnbind" data-id="{{item.id}}">解绑</van-button>
-        </view>
-      </van-card>
-    </view>
+		<van-button
+			wx:if="{{!userInfo.school_id}}"
+			type="primary"
+			bind:click="onGoToProfile"
+			block
+			custom-class="bind-school-button"
+		>
+			绑定学校
+		</van-button>
 
-  </block>
+		<view class="class-list-title">我加入的班级</view>
+		<van-empty wx:if="{{classes.length === 0 && !loading}}" description="暂未加入任何班级" />
+		<view class="class-list" wx:else>
+			<van-card
+				wx:for="{{classes}}"
+				wx:key="id"
+				title="{{item.name}}"
+				desc="学校: {{item.school.name}}"
+				bind:click="onClassClick"
+				data-id="{{item.id}}"
+			>
+				<view slot="tags">
+					<van-tag type="primary">年级: {{item.grade}}</van-tag>
+					<van-tag type="success" class="ml-2">班级: {{item.class_num}}</van-tag>
+				</view>
+				<view slot="price">
+					<van-tag plain type="primary" class="ml-2" size="medium">{{item.student_count}} 人</van-tag>
+				</view>
+				<view slot="footer">
+					<van-button size="mini" type="danger" catchtap="onUnbind" data-id="{{item.id}}">解绑</van-button>
+				</view>
+			</van-card>
+		</view>
+	</block>
 </view>

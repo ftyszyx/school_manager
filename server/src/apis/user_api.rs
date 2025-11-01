@@ -44,6 +44,12 @@ pub struct UserUpdatePayload {
     pub role_ids: Option<Vec<i32>>,
     pub class_ids: Option<Vec<i32>>,
     pub password: Option<String>,
+    pub school_id: Option<i32>,
+    pub phone: Option<String>,
+    pub wechat_openid: Option<String>,
+    pub wechat_unionid: Option<String>,
+    pub wechat_nickname: Option<String>,
+    pub wechat_avatar_url: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Validate)]
@@ -73,6 +79,13 @@ pub struct UserRoleInfo {
 pub struct UserInfo {
     pub id: i32,
     pub username: String,
+    pub school_id: Option<i32>,
+    pub school_name: Option<String>,
+    pub phone: Option<String>,
+    pub wechat_openid: Option<String>,
+    pub wechat_unionid: Option<String>,
+    pub wechat_nickname: Option<String>,
+    pub wechat_avatar_url: Option<String>,
     pub class_infos: Vec<UserClassInfo>,
     pub role_infos: Vec<UserRoleInfo>,
     pub created_at: DateTime<Utc>,
@@ -255,6 +268,20 @@ pub async fn update(
     Ok(ApiResponse::success(user))
 }
 
+#[handler]
+pub async fn update_my_info(
+    depot: &mut Depot,
+    req: JsonBody<UserUpdatePayload>,
+) -> Result<ApiResponse<users::Model>, AppError> {
+    let state = depot.obtain::<AppState>().unwrap();
+    let claims = depot.obtain::<Claims>().unwrap();
+    let mut req = req.into_inner();
+    req.role_ids=None;
+    req.school_id=None;
+    let user = update_impl(&state, claims.user_id, req).await?;
+    Ok(ApiResponse::success(user))
+}
+
 pub async fn update_impl(
     state: &AppState,
     id: i32,
@@ -363,6 +390,19 @@ async fn enrich_users_with_details(
         .filter(teacher_classes::Column::UserId.is_in(user_ids.clone()))
         .all(&state.db)
         .await?;
+    // schoolids
+    let school_ids: Vec<i32> = user_models.iter().filter_map(|u| u.school_id).collect();
+    let user_schools_map: HashMap<i32, schools::Model> = if school_ids.is_empty() {
+        HashMap::new()
+    } else {
+        schools::Entity::find()
+            .filter(schools::Column::Id.is_in(school_ids))
+            .all(&state.db)
+            .await?
+            .into_iter()
+            .map(|s| (s.id, s))
+            .collect()
+    };
 
     let role_ids: Vec<i32> = user_roles_list.iter().map(|ur| ur.role_id).collect();
     let class_ids: Vec<i32> = teacher_classes_list.iter().map(|tc| tc.class_id).collect();
@@ -437,9 +477,20 @@ async fn enrich_users_with_details(
                 })
                 .collect();
 
+            let school_name = user
+                .school_id
+                .and_then(|school_id| user_schools_map.get(&school_id).map(|s| s.name.clone()));
+
             UserInfo {
                 id: user.id,
                 username: user.username,
+                school_id: user.school_id,
+                school_name,
+                phone: user.phone,
+                wechat_openid: user.wechat_openid,
+                wechat_unionid: user.wechat_unionid,
+                wechat_nickname: user.wechat_nickname,
+                wechat_avatar_url: user.wechat_avatar_url,
                 created_at: user.created_at.into(),
                 role_infos,
                 class_infos,
@@ -483,7 +534,7 @@ pub async fn get_by_id_impl(state: &AppState, id: i32) -> Result<UserInfo, AppEr
     let user = users::Entity::find_by_id(id)
         .one(&state.db)
         .await?
-        .ok_or_else(|| AppError::not_found("users".to_string(), Some(id)))?;
+        .ok_or_else(|| AppError::UserNotFound { message: "User not found".to_string() })?;
 
     let mut user_infos = enrich_users_with_details(state, vec![user]).await?;
     if user_infos.is_empty() {
@@ -562,6 +613,38 @@ pub async fn unbind_class(
         ));
     }
 
+    Ok(ApiResponse::success(()))
+}
+
+#[derive(Deserialize, Debug, ToSchema)]
+pub struct BindSchoolPayload {
+    pub school_id: i32,
+    pub password: String,
+}
+
+#[handler]
+pub async fn bind_school(
+    depot: &mut Depot,
+    req: JsonBody<BindSchoolPayload>,
+) -> Result<ApiResponse<()>, AppError> {
+    let state = depot.obtain::<AppState>().unwrap();
+    let claims = depot.obtain::<Claims>().unwrap();
+    let school = schools::Entity::find_by_id(req.school_id)
+        .one(&state.db)
+        .await?
+        .ok_or_else(|| AppError::not_found("school".to_string(), Some(req.school_id)))?;
+    let is_valid = verify(&req.password, &school.password)
+        .map_err(|_| AppError::auth_failed("School password incorrect"))?;
+    if !is_valid {
+        return Err(AppError::auth_failed("School password incorrect"));
+    }
+    let user = users::Entity::find_by_id(claims.user_id)
+        .one(&state.db)
+        .await?
+        .ok_or_else(|| AppError::not_found("user".to_string(), Some(claims.user_id)))?;
+    let mut user_active_model: users::ActiveModel = user.into();
+    user_active_model.school_id = Set(Some(school.id));
+    user_active_model.update(&state.db).await?;  
     Ok(ApiResponse::success(()))
 }
 

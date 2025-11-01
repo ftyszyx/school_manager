@@ -2,7 +2,8 @@
   "pages": [
     "pages/index/index",
     "pages/class-detail/class-detail",
-    "pages/bind-class/bind-class"
+    "pages/bind-class/bind-class",
+    "pages/profile/profile"
   ],
   "window": {
     "backgroundTextStyle": "light",

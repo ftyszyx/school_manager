@@ -44,6 +44,9 @@ pub enum AppError {
     InternalError {
         message: String,
     },
+    UserNotFound {
+        message: String,
+    },
     Message(String),
 }
 
@@ -97,6 +100,7 @@ impl AppError {
             Self::NotImplemented { .. } => APP_NOT_IMPLEMENTED,
             Self::Message(_) => APP_OTHER,
             Self::InternalError { .. } => APP_INTERNAL_ERROR,
+            Self::UserNotFound { .. } => APP_USER_NOT_FOUND,
         }
     }
 }
@@ -124,6 +128,7 @@ impl fmt::Display for AppError {
             Self::NotImplemented { message } => write!(f, "Not implemented: {}", message),
             Self::Message(message) => write!(f, "{}", message),
             Self::InternalError { message } => write!(f, "Internal error: {}", message),
+            Self::UserNotFound { message } => write!(f, "User not found: {}", message),
         }
     }
 }

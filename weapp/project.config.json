@@ -1,17 +1,41 @@
 {
   "setting": {
+    "urlCheck": true,
     "es6": true,
-    "postcss": true,
-    "minified": true,
-    "uglifyFileName": false,
     "enhance": true,
-    "packNpmRelationList": [],
+    "postcss": true,
+    "preloadBackgroundData": false,
+    "minified": true,
+    "newFeature": false,
+    "coverView": true,
+    "nodeModules": true,
+    "autoAudits": false,
+    "showShadowRootInWxmlPanel": true,
+    "scopeDataCheck": false,
+    "uglifyFileName": false,
+    "checkInvalidKey": true,
+    "checkSiteMap": true,
+    "uploadWithSourceMap": true,
+    "compileHotRebuild": false,
+    "useMultiFrameRuntime": true,
+    "useApiHook": true,
+    "useApiHostProcess": true,
     "babelSetting": {
       "ignore": [],
       "disablePlugins": [],
       "outputPath": ""
     },
-    "useCompilerPlugins": ["typescript"],
+    "useCompilerPlugins": [
+      "typescript"
+    ],
+    "packNpmManually": true,
+    "packNpmRelationList": [
+      {
+        "packageJsonPath": "./package.json",
+        "miniprogramNpmDistDir": "./miniprogram_npm/"
+      }
+    ],
+    "minifyWXSS": true,
     "minifyWXML": true
   },
   "compileType": "miniprogram",

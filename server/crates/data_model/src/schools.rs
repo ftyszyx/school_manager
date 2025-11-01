@@ -9,6 +9,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub name: String,
+    pub password: String,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
@@ -17,11 +18,19 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::classes::Entity")]
     Classes,
+    #[sea_orm(has_many = "super::users::Entity")]
+    Users,
 }
 
 impl Related<super::classes::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Classes.def()
+    }
+}
+
+impl Related<super::users::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Users.def()
     }
 }
 
