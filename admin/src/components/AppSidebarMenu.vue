@@ -24,7 +24,7 @@ const menuItems: AdminMenuItem[] = [
   //i18n-key: menu.schools
   { label: 'menu.schools', icon: 'School', path: RoutePath.AdminSchools },
   //i18n-key: menu.classes
-  { label: 'menu.classes', icon: 'Classroom', path: RoutePath.AdminClasses },
+  { label: 'menu.classes', icon: 'Reading', path: RoutePath.AdminClasses },
 ]
 </script>
 
