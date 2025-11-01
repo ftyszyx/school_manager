@@ -44,25 +44,36 @@ module.exports = {
 		<view class="class-list-title">我加入的班级</view>
 		<van-empty wx:if="{{classes.length === 0 && !loading}}" description="暂未加入任何班级" />
 		<view class="class-list" wx:else>
-			<van-card
-				wx:for="{{classes}}"
-				wx:key="id"
-				title="{{item.name}}"
-				desc="学校: {{item.school.name}}"
-				bind:click="onClassClick"
-				data-id="{{item.id}}"
-			>
-				<view slot="tags">
-					<van-tag type="primary">年级: {{item.grade}}</van-tag>
-					<van-tag type="success" class="ml-2">班级: {{item.class_num}}</van-tag>
+			<view class="class-card" wx:for="{{classes}}" wx:key="id">
+				<view class="card-header">
+					<text class="class-name">{{item.class_name || item.name || '未命名班级'}}</text>
+					<van-tag type="{{statusMap[item.status] ? statusMap[item.status].type : 'default'}}">
+						{{statusMap[item.status] ? statusMap[item.status].text : '未知'}}
+					</van-tag>
 				</view>
-				<view slot="price">
-					<van-tag plain type="primary" class="ml-2" size="medium">{{item.student_count}} 人</van-tag>
+				<view class="card-info">
+					<text class="info-item">学校: {{item.school_name || (item.school ? item.school.name : '未绑定')}}</text>
+					<text class="info-item">年级: {{item.grade !== undefined && item.grade !== null ? item.grade : '--'}}</text>
+					<text class="info-item">班级: {{item.class !== undefined && item.class !== null ? item.class : (item.class_num !== undefined && item.class_num !== null ? item.class_num : '--')}}</text>
 				</view>
-				<view slot="footer">
+				<view class="card-status" >
+					<van-radio-group
+						value="{{'' + (item.status !== undefined && item.status !== null ? item.status : 0)}}"
+						direction="horizontal"
+						data-class-id="{{item.id}}"
+						data-class-index="{{index}}"
+						bind:change="onStatusChange"
+						disabled="{{updatingStatusId === item.id}}"
+					>
+						<van-radio name="0">已放学</van-radio>
+						<van-radio name="1">上课中</van-radio>
+						<van-radio name="2">放学中</van-radio>
+					</van-radio-group>
+				</view>
+				<view class="card-footer">
 					<van-button size="mini" type="danger" catchtap="onUnbind" data-id="{{item.id}}">解绑</van-button>
 				</view>
-			</van-card>
+			</view>
 		</view>
 
 		<!-- Floating Action Button to Add Class -->

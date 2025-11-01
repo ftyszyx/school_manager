@@ -56,17 +56,6 @@
   padding-left: 10rpx;
 }
 
-.class-list .van-card {
-  margin-top: 10px;
-  margin-bottom: 20rpx;
-  border-radius: 8rpx;
-  background-color: #fff;
-}
-
-.ml-2 {
-  margin-left: 10rpx;
-}
-
 .fab-button {
   position: fixed !important;
   right: 40rpx;
@@ -74,4 +63,59 @@
   width: 100rpx !important;
   height: 100rpx !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.class-card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.05);
+  width: calc(100% - 40rpx);
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.class-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 16rpx;
+}
+
+.card-info .info-item {
+  line-height: 1.4;
+}
+
+.card-status {
+  margin-bottom: 16rpx;
+}
+
+.card-status .van-radio {
+  margin-right: 16rpx;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
 }

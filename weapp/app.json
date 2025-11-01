@@ -1,7 +1,6 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/class-detail/class-detail",
     "pages/bind-class/bind-class",
     "pages/profile/profile"
   ],
@@ -23,7 +22,9 @@
       "van-nav-bar": "@vant/weapp/nav-bar",
       "van-popup": "@vant/weapp/popup",
       "van-toast": "@vant/weapp/toast",
-      "van-picker": "@vant/weapp/picker"
+      "van-picker": "@vant/weapp/picker",
+      "van-radio": "@vant/weapp/radio",
+      "van-radio-group": "@vant/weapp/radio-group"
   },
   "sitemapLocation": "sitemap.json"
 }
