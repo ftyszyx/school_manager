@@ -1,7 +1,14 @@
 // pages/index/index.ts
 import { getCurrentUser, unbindClass, updateClassStatus } from '../../utils/api';
-
 const app = getApp<IAppOption>();
+const BASE_RECONNECT_DELAY = 1000;
+const MAX_RECONNECT_DELAY = 15000;
+let socketTask: WechatMiniprogram.SocketTask | null = null;
+let reconnectTimer: number | null = null;
+let reconnectAttempts = 0;
+let shouldReconnect = true;
+let currentSchoolId: number | null = null;
+let manualClose = false;
 
 interface IndexData {
 	classes: any[];
@@ -12,6 +19,7 @@ interface IndexData {
 	statusOptions: { value: string; label: string }[];
 	statusMap: Record<number, { text: string; type: string }>;
 	updatingStatusId: number | null;
+	schoolId: number | null;
 }
 
 Page<IndexData, WechatMiniprogram.IAnyObject>({
@@ -32,17 +40,13 @@ Page<IndexData, WechatMiniprogram.IAnyObject>({
 			2: { text: '放学中', type: 'warning' },
 		},
 		updatingStatusId: null,
+		schoolId: null,
 	},
 
 	onLoad() {
 		if ((wx as any).getUserProfile) {
 			this.setData({ canIUseGetUserProfile: true });
 		}
-	},
-
-	onShow() {
-		console.log('onShow');
-		this.checkLoginStatus();
 	},
 
 	checkLoginStatus() {
@@ -59,6 +63,142 @@ Page<IndexData, WechatMiniprogram.IAnyObject>({
 
 	onGoToProfile() {
 		wx.navigateTo({ url: '/pages/profile/profile' });
+	},
+
+	clearReconnectTimer() {
+		if (reconnectTimer) {
+			clearTimeout(reconnectTimer);
+			reconnectTimer = null;
+		}
+	},
+
+	cleanupSocket() {
+		shouldReconnect = false;
+		this.clearReconnectTimer();
+		if (socketTask) {
+			manualClose = true;
+			socketTask.close({ reason: 'page-unload' });
+			socketTask = null;
+		}
+		currentSchoolId = null;
+	},
+
+	scheduleReconnect(schoolId: number) {
+		if (!shouldReconnect || reconnectTimer) {
+			return;
+		}
+		const delay = Math.min(BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts), MAX_RECONNECT_DELAY);
+		reconnectTimer = setTimeout(() => {
+			reconnectTimer = null;
+			reconnectAttempts += 1;
+			if (shouldReconnect) {
+				this.openSocket(schoolId);
+			}
+		}, delay);
+	},
+
+	determineSchoolId(userInfo: any, classes: any[]): number | null {
+		const direct = userInfo && (userInfo.school_id ?? userInfo.schoolId);
+		if (direct !== undefined && direct !== null) {
+			const parsed = Number(direct);
+			if (!Number.isNaN(parsed)) {
+				return parsed;
+			}
+		}
+		const found = classes.find((c: any) => c && (c.school_id !== undefined || c.schoolId !== undefined));
+		if (found) {
+			const parsed = Number(found.school_id ?? found.schoolId);
+			if (!Number.isNaN(parsed)) {
+				return parsed;
+			}
+		}
+		return null;
+	},
+
+	openSocket(schoolId: number) {
+		const base = app && app.globalData ? app.globalData.apiBase : '';
+		console.log('openSocket',base);
+		if (!base) {
+			console.warn('API base url is not configured');
+			return;
+		}
+		const token = wx.getStorageSync('token') as string | undefined;
+		const wsBase = base.replace(/^http/, 'ws');
+		const url = `${wsBase}/ws/school/${schoolId}`;
+		console.log('openSocket',url);
+		if (socketTask) {
+			manualClose = true;
+			socketTask.close({ reason: 'reconnect' });
+			socketTask = null;
+		}
+		this.clearReconnectTimer();
+		shouldReconnect = true;
+		socketTask = wx.connectSocket({ url, header: token ? { Authorization: `Bearer ${token}` } : {} });
+		socketTask.onOpen(() => {
+			reconnectAttempts = 0;
+		});
+		socketTask.onMessage((event) => {
+			this.handleSocketMessage(event);
+		});
+		socketTask.onError((err) => {
+			console.error('WebSocket error', err);
+			socketTask = null;
+			if (shouldReconnect) {
+				this.scheduleReconnect(schoolId);
+			}
+		});
+		socketTask.onClose((evt) => {
+			socketTask = null;
+			if (manualClose) {
+				manualClose = false;
+				shouldReconnect = true;
+				return;
+			}
+			if (shouldReconnect) {
+				this.scheduleReconnect(schoolId);
+			}
+		});
+	},
+
+	handleSocketMessage(event: WechatMiniprogram.SocketTask.OnMessageCallbackResult) {
+		const message = typeof event.data === 'string' ? event.data : '';
+		if (!message) {
+			return;
+		}
+		try {
+			const parsed = JSON.parse(message);
+			const payload = parsed && typeof parsed === 'object' && 'data' in parsed ? (parsed as any).data : parsed;
+			const rawClassId = (payload as any).class_id ?? (payload as any).classId ?? (payload as any).id;
+			const rawStatus = (payload as any).new_status ?? (payload as any).newStatus ?? (payload as any).status;
+			const classId = Number(rawClassId);
+			const status = Number(rawStatus);
+			if (Number.isNaN(classId) || Number.isNaN(status)) {
+				return;
+			}
+			const index = this.data.classes.findIndex((item: any) => {
+				const itemId = Number(item.id ?? item.class_id ?? item.classId);
+				return !Number.isNaN(itemId) && itemId === classId;
+			});
+			if (index >= 0) {
+				this.setData({ [`classes[${index}].status`]: status });
+			}
+		} catch (error) {
+			console.warn('Invalid websocket payload', error);
+		}
+	},
+
+	ensureRealtimeConnection(schoolId: number | null) {
+		this.setData({ schoolId: schoolId ?? null });
+		if (schoolId === null || Number.isNaN(schoolId)) {
+			this.cleanupSocket();
+			return;
+		}
+		shouldReconnect = true;
+		if (currentSchoolId !== schoolId || !socketTask) {
+			currentSchoolId = schoolId;
+			reconnectAttempts = 0;
+			this.openSocket(schoolId);
+		}
 	},
 
 	async fetchData() {
@@ -79,6 +219,8 @@ Page<IndexData, WechatMiniprogram.IAnyObject>({
 				classes: normalizedClasses,
 				isTeacher,
 			});
+			const schoolId = this.determineSchoolId(userInfo, normalizedClasses);
+			this.ensureRealtimeConnection(schoolId);
 		} catch (error) {
 			console.error('Failed to fetch data', error);
 			wx.showToast({ title: '加载数据失败', icon: 'none' });
@@ -175,6 +317,23 @@ Page<IndexData, WechatMiniprogram.IAnyObject>({
 		return str.slice(0, length);
 	},
 
+	onUnload() {
+		this.cleanupSocket();
+	},
+
+	onHide() {
+		shouldReconnect = false;
+		this.clearReconnectTimer();
+	},
+
+	onShow() {
+		console.log('onShow');
+		shouldReconnect = true;
+		this.clearReconnectTimer();
+		if (socketTask === null && this.data.schoolId) {
+			this.scheduleReconnect(this.data.schoolId);
+		}
+		this.checkLoginStatus();
+	},
+
 });
-
-
