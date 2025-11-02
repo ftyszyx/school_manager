@@ -28,3 +28,14 @@ cargo test
 //test one module
 cargo test --test auth_test 
 ```
+
+websocket:
+http:
+```
+ws://localhost:3000/api/admin/ws/school/3
+```
+
+https:
+```
+wss://localhost:3000/api/admin/ws/school/3
+```

@@ -21,15 +21,18 @@ const lastUpdate = ref<Date | null>(null)
 let socket: WebSocket | null = null
 
 const statusMap: Record<number, { text: string; color: string }> = {
-  0: { text: '未放学', color: '#0066FF' },
-  1: { text: '放学中', color: '#FF6600' },
-  2: { text: '已放学', color: '#00C853' },
+  0: { text: '已放学', color: '#0066FF' },
+  1: { text: '上课中', color: '#FF6600' },
+  2: { text: '放学中', color: '#00C853' },
 }
 
 const nowTime = ref(new Date())
 const formattedNow = computed(() => nowTime.value.toLocaleString())
 const formattedLastUpdate = computed(() => (lastUpdate.value ? lastUpdate.value.toLocaleString() : ''))
 let clockTimer: number | null = null
+let reconnectTimer: number | null = null
+let reconnectAttempts = 0
+let shouldReconnect = true
 
 const grades = computed(() => {
   const gradeSet = new Set<number>()
@@ -76,20 +79,43 @@ const tableRows = computed(() => {
   })
 })
 
+const scheduleReconnect = () => {
+  if (!shouldReconnect || reconnectTimer) return
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 15000)
+  reconnectTimer = window.setTimeout(() => {
+    reconnectTimer = null
+    reconnectAttempts++
+    connectWebSocket()
+  }, delay)
+}
+
 const connectWebSocket = () => {
-  if (!import.meta.env.VITE_BASE_URL) return
+  // console.log("connectWebSocket",import.meta.env)
+  // if (!import.meta.env.VITE_BASE_URL) return
   try {
-    const base = import.meta.env.VITE_BASE_URL.replace(/^http/, 'ws')
+    const base = import.meta.env.VITE_WS_URL
     const url = `${base}/ws/school/${schoolId}`
+    console.log("connectWebSocket",url)
+    if (socket) {
+      socket.onopen = null
+      socket.onmessage = null
+      socket.onerror = null
+      socket.onclose = null
+      socket.close()
+      socket = null
+    }
     socket = new WebSocket(url)
-    socket.onopen = () => console.log('screen ws connected')
+    socket.onopen = () => {
+      console.log('screen socket ws connected')
+      reconnectAttempts = 0
+    }
     socket.onmessage = (event) => {
       try {
+        console.log("socket onmessage",event.data)
         const payload = JSON.parse(event.data)
-        if (payload.event_type === 'CLASS_STATUS_UPDATE' && payload.data) {
-          const updated = payload.data
+        if ( payload) {
           classes.value = classes.value.map((cls) =>
-            cls.id === updated.id ? { ...cls, status: Number(updated.status) } : cls,
+            cls.id === payload.class_id ? { ...cls, status: Number(payload.new_status) } : cls,
           )
           lastUpdate.value = new Date()
         }
@@ -97,10 +123,17 @@ const connectWebSocket = () => {
         console.warn('Invalid ws payload', err)
       }
     }
-    socket.onerror = (err) => console.error('screen ws error', err)
-    socket.onclose = () => console.log('screen ws closed')
+    socket.onerror = (err) => {
+      console.error('screen socket ws error', err)
+      scheduleReconnect()
+    }
+    socket.onclose = () => {
+      console.log('screen socket ws closed')
+      scheduleReconnect()
+    }
   } catch (err) {
-    console.error('Failed to open websocket', err)
+    console.error('Failed to open socket websocket', err)
+    scheduleReconnect()
   }
 }
 
@@ -108,6 +141,7 @@ const loadData = async () => {
   loading.value = true
   try {
     const list = await getClassesBySchool(schoolId)
+    console.log("get data",list)
     const normalized: ScreenClass[] = list.map((c: any) => ({
       ...c,
       id: Number(c.id ?? c.class_id ?? -1),
@@ -132,15 +166,22 @@ onMounted(async () => {
   }
   await loadData()
   connectWebSocket()
+  console.log("onMounted",schoolId)
   clockTimer = window.setInterval(() => {
     nowTime.value = new Date()
   }, 1000)
 })
 
 onBeforeUnmount(() => {
+  console.log("onBeforeUnmount")
+  shouldReconnect = false
   if (socket) {
     socket.close()
     socket = null
+  }
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer)
+    reconnectTimer = null
   }
   if (clockTimer) {
     clearInterval(clockTimer)
@@ -255,6 +296,9 @@ onBeforeUnmount(() => {
   background: rgba(255, 255, 255, 0.1);
   padding: 12px;
   border-radius: 12px;
+}
+.table-header .grade-cell {
+  background: transparent;
 }
 
 .class-cell, .status-cell {
