@@ -68,6 +68,7 @@ pub fn build_router(app_state: AppState) -> Router {
         .push(reigster_router)
         .push(Router::with_path("/api/classes/school/{school_id}").get(class_api::get_all_class_by_school_id))
         .push(Router::with_path("/api/schools/all").get(school_api::get_all_schools))
+        .push(Router::with_path("/api/schools/{id}/simple").get(school_api::get_simple_by_id))
         .push(Router::with_path("/ws/school/{id}").goal(ws_api::school_ws_handler))
         .push(admin_routes)
 }

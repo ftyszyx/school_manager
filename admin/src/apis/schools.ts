@@ -26,3 +26,7 @@ export const updateSchool = async (id: number, data: SchoolUpdateRequest): Promi
 export const deleteSchool = async (id: number): Promise<void> => {
   return (await request.delete(`/api/admin/schools/${id}`)).data
 }
+
+export const getSimpleSchool = async (id: number): Promise<School> => {
+  return (await request.get(`/api/schools/${id}/simple`)).data
+}

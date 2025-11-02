@@ -166,6 +166,17 @@ pub async fn get_by_id(
     Ok(ApiResponse::success(school))
 }
 
+#[handler]
+pub async  fn get_simple_by_id(
+    depot: &mut Depot,
+    id: PathParam<i32>,
+) -> Result<ApiResponse<SchoolInfo>, AppError> {
+    let state = depot.obtain::<AppState>().unwrap();
+    let mut school = get_by_id_impl(&state, id.into_inner()).await?;
+    school.password = None;
+    Ok(ApiResponse::success(school))
+}
+
 pub async fn get_by_id_impl(state: &AppState, id: i32) -> Result<SchoolInfo, AppError> {
     let school = schools::Entity::find_by_id(id)
         .into_model::<SchoolInfo>()

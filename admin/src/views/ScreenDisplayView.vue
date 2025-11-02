@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { getClassesBySchool } from '@/apis/classes'
+import { getClassesBySchool, getSimpleSchool } from '@/apis'
 import type { ClassInfo } from '@/types/classes'
 
 interface ScreenClass extends ClassInfo {
@@ -81,7 +81,8 @@ const tableRows = computed(() => {
 
 const scheduleReconnect = () => {
   if (!shouldReconnect || reconnectTimer) return
-  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 15000)
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 5000)
+  console.log("scheduleReconnect",delay)
   reconnectTimer = window.setTimeout(() => {
     reconnectTimer = null
     reconnectAttempts++
@@ -140,6 +141,8 @@ const connectWebSocket = () => {
 const loadData = async () => {
   loading.value = true
   try {
+    const school = await getSimpleSchool(schoolId)
+    schoolName.value = school.name
     const list = await getClassesBySchool(schoolId)
     console.log("get data",list)
     const normalized: ScreenClass[] = list.map((c: any) => ({
@@ -150,7 +153,6 @@ const loadData = async () => {
       status: Number(c.status ?? 0),
     }))
     classes.value = normalized
-    schoolName.value = normalized[0]?.school_name ?? '学校'
     lastUpdate.value = new Date()
   } catch (err) {
     console.error('Failed to load classes', err)
