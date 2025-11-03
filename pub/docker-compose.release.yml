@@ -10,7 +10,7 @@ services:
       redis:
         condition: service_started 
     ports:
-      - "${LISTEN_PORT}:${LISTEN_PORT}"
+      - "${LISTEN_OUT_PORT}:${LISTEN_PORT}"
     volumes:
       - ./deploy/server/logs:/app/logs
     restart: unless-stopped
@@ -23,7 +23,7 @@ services:
       - POSTGRES_USER=${DATABASE_USER}
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
     ports:
-      - "${DATABASE_PORT}:5432"
+      - "${DATABASE_OUT_PORT}:5432"
     volumes:
       - ./deploy/postgres/data:/var/lib/postgresql/data
       - ./deploy/postgres/init:/docker-entrypoint-initdb.d
@@ -36,4 +36,4 @@ services:
     image: redis:latest
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT}:6379"
+      - "${REDIS_OUT_PORT}:6379"
