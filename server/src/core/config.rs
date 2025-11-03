@@ -1,5 +1,5 @@
-use std::env;
 use anyhow::{Context, Result};
+use std::env;
 
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -13,14 +13,21 @@ pub struct Config {
 
 #[derive(Debug, Clone)]
 pub struct DatabaseConfig {
-    pub db_url: String,
+    pub db_name: String,
+    pub db_user: String,
+    pub db_password: String,
+    pub db_host: String,
+    pub db_port: u16,
     pub max_connections: u32,
     pub min_connections: u32,
     pub connect_timeout_secs: u64,
+    pub db_url: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct RedisConfig {
+    pub host: String,
+    pub port: u16,
     pub url: String,
 }
 
@@ -63,9 +70,29 @@ impl Config {
 
 impl DatabaseConfig {
     fn from_env() -> Result<Self> {
+        let db_user = env::var("DATABASE_USER").context("DATABASE_USER must be set")?;
+        let db_password = env::var("DATABASE_PASSWORD").context("DATABASE_PASSWORD must be set")?;
+        let db_host = env::var("DATABASE_HOST").context("DATABASE_HOST must be set")?;
+        let db_port = env::var("DATABASE_PORT")
+            .unwrap_or_else(|_| "5432".to_string())
+            .parse()
+            .context("Invalid DATABASE_PORT value")?;
+        let db_name = env::var("DATABASE_NAME").context("DATABASE_NAME must be set")?;
+        let db_url = format!(
+            "postgres://{}:{}@{}:{}/{}",
+            db_user.clone(),
+            db_password.clone(),
+            db_host.clone(),
+            db_port,
+            db_name.clone(),
+        );
         Ok(DatabaseConfig {
-            db_url: env::var("DATABASE_URL")
-                .context("DATABASE_URL must be set")?,
+            db_url,
+            db_name,
+            db_user,
+            db_password,
+            db_host,
+            db_port,
             max_connections: env::var("DB_MAX_CONNECTIONS")
                 .unwrap_or_else(|_| "100".to_string())
                 .parse()
@@ -84,18 +111,20 @@ impl DatabaseConfig {
 
 impl RedisConfig {
     fn from_env() -> Result<Self> {
-        Ok(RedisConfig {
-            url: env::var("REDIS_URL")
-                .context("REDIS_URL must be set")?,
-        })
+        let host = env::var("REDIS_HOST").context("REDIS_HOST must be set")?;
+        let port = env::var("REDIS_PORT")
+            .unwrap_or_else(|_| "6379".to_string())
+            .parse()
+            .context("Invalid REDIS_PORT value")?;
+        let url = format!("redis://{}:{}", host.clone(), port);
+        Ok(RedisConfig { host, port, url })
     }
 }
 
 impl JwtConfig {
     fn from_env() -> Result<Self> {
         Ok(JwtConfig {
-            secret: env::var("JWT_SECRET")
-                .context("JWT_SECRET must be set")?,
+            secret: env::var("JWT_SECRET").context("JWT_SECRET must be set")?,
             expire_days: env::var("JWT_EXPIRE")
                 .unwrap_or_else(|_| "7".to_string())
                 .parse()
@@ -119,10 +148,8 @@ impl ServerConfig {
 impl WechatConfig {
     fn from_env() -> Result<Self> {
         Ok(WechatConfig {
-            app_id: env::var("WECHAT_APP_ID")
-                .context("WECHAT_APP_ID must be set")?,
-            app_secret: env::var("WECHAT_APP_SECRET")
-                .context("WECHAT_APP_SECRET must be set")?,
+            app_id: env::var("WECHAT_APP_ID").context("WECHAT_APP_ID must be set")?,
+            app_secret: env::var("WECHAT_APP_SECRET").context("WECHAT_APP_SECRET must be set")?,
         })
     }
 }
