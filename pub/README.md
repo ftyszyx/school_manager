@@ -46,7 +46,7 @@ docker compose -f docker-compose.release.yml up --force-recreate server
 
 ### 构建web(如果前端有修改)
 ```
-python build_web.py --base-url https://appapi.bytefuse.cn/api
+python build_web.py --base-url https://school.bytefuse.cn/ --ws-url wss://school.bytefuse.cn/
 # python build_web.py --base-url http://localhost:3000
 ```
 

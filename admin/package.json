@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "check": "vue-tsc -b",
-    "build": "vue-tsc -b && vite build",
+    "build": "vue-tsc -b && vite build && node scripts/copy-dist.js",
     "tailwind": "tailwindcss -i ./src/assets/main.css -o ./src/assets/main_output.css --watch",
     "getlang": "extract-keys",
     "preview": "vite preview"

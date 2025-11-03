@@ -1,0 +1,1 @@
+import{af as s}from"./index-TzivwsyV.js";const n=async a=>(await s.get("/api/admin/permissions",{params:a})).data,e=async a=>(await s.post("/api/admin/permissions",a)).data,r=async(a,i)=>(await s.put(`/api/admin/permissions/${a}`,i)).data,o=async a=>(await s.delete(`/api/admin/permissions/${a}`)).data;export{e as c,o as d,n as g,r as u};

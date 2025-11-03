@@ -1,5 +1,6 @@
+name: school_manager
 services:
-  school_manager_server:
+  server:
     build:
       context: ../server
       dockerfile: Dockerfile
@@ -14,7 +15,6 @@ services:
       - "${LISTEN_PORT}:${LISTEN_PORT}"
     volumes:
       - ./deploy/server/logs:/app/logs
-      - ./deploy/server/casbin_model.conf:/usr/src/app/casbin_model.conf
     restart: unless-stopped
 
   db:

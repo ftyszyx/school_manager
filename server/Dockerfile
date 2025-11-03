@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM rust:1.87-slim AS builder
+FROM rust:1.88-slim AS builder
 ENV CARGO_HOME=/usr/local/cargo
 # Install build dependencies, including postgresql client and nodejs/npm for swagger-ui
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
@@ -35,5 +35,5 @@ RUN chmod +x ./entrypoint.sh
 # COPY casbin_model.conf .
 EXPOSE 3000
 ENTRYPOINT ["./entrypoint.sh"]
-CMD ["./app_server"]
+# CMD ["./app_server"]
 # CMD ["/bin/bash"]

@@ -12,7 +12,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/src/app/target \ 
     cargo build --release --workspace  \
     && mkdir -p /usr/src/out \
-    && cp target/release/app_server /usr/src/out/app_server
+    && cp target/release/school-manager-server /usr/src/out/school-manager-server
+RUN cargo install sqlx-cli --no-default-features --features native-tls,postgres
 
 FROM debian:12-slim as runner
 WORKDIR /usr/src/app
@@ -22,8 +23,11 @@ WORKDIR /usr/src/app
    # --no-install-recommends  只安装必要的依赖包
  && apt-get install -y --no-install-recommends pkg-config libssl-dev libpq-dev nodejs npm curl \
  && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /usr/src/out/app_server .
-COPY casbin_model.conf .
+
+COPY --from=builder /usr/src/out/school-manager-server .
+COPY --from=builder /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx
+COPY migrations/ ./migrations/
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 EXPOSE 3000
-CMD ["./app_server"]
-# CMD ["/bin/bash"]
+ENTRYPOINT ["./entrypoint.sh"]
