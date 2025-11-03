@@ -39,3 +39,9 @@ https:
 ```
 wss://localhost:3000/api/admin/ws/school/3
 ```
+
+
+### build docker for release
+```
+docker build -f Dockerfile.release -t school-manager-server:latest .
+```
