@@ -20,6 +20,7 @@ interface IndexData {
 	statusMap: Record<number, { text: string; type: string }>;
 	updatingStatusId: number | null;
 	schoolId: number | null;
+	hasSchool: boolean;
 }
 
 Page<IndexData, WechatMiniprogram.IAnyObject>({
@@ -41,12 +42,13 @@ Page<IndexData, WechatMiniprogram.IAnyObject>({
 		},
 		updatingStatusId: null,
 		schoolId: null,
+		hasSchool: false,
 	},
 
 	onLoad() {
-		if ((wx as any).getUserProfile) {
-			this.setData({ canIUseGetUserProfile: true });
-		}
+		// if ((wx as any).getUserProfile) {
+		// 	this.setData({ canIUseGetUserProfile: true });
+		// }
 	},
 
 	checkLoginStatus() {
@@ -188,16 +190,18 @@ Page<IndexData, WechatMiniprogram.IAnyObject>({
 	},
 
 	ensureRealtimeConnection(schoolId: number | null) {
-		this.setData({ schoolId: schoolId ?? null });
-		if (schoolId === null || Number.isNaN(schoolId)) {
+		console.log('ensureRealtimeConnection', schoolId);
+		const normalized = schoolId !== null && !Number.isNaN(schoolId) ? schoolId : null;
+		this.setData({ schoolId: normalized, hasSchool: normalized !== null });
+		if (normalized === null) {
 			this.cleanupSocket();
 			return;
 		}
 		shouldReconnect = true;
-		if (currentSchoolId !== schoolId || !socketTask) {
-			currentSchoolId = schoolId;
+		if (currentSchoolId !== normalized || !socketTask) {
+			currentSchoolId = normalized;
 			reconnectAttempts = 0;
-			this.openSocket(schoolId);
+			this.openSocket(normalized);
 		}
 	},
 

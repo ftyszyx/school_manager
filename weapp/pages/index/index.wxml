@@ -78,6 +78,7 @@ module.exports = {
 
 		<!-- Floating Action Button to Add Class -->
 		<van-button
+			wx:if="{{hasSchool}}"
 			type="primary"
 			round
 			custom-class="fab-button"
