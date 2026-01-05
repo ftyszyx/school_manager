@@ -8,7 +8,8 @@ interface IAppOption {
 	userInfoReadyCallback?: (data: any) => void;
 	// Methods implemented in app.ts
 	autoLogin: () => void;
-	login: (userInfo?: any) => void;
+	appLogin: () => Promise<string>;
+	wxlogin: () => Promise<string>;
 }
 
 

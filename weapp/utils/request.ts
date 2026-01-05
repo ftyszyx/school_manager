@@ -7,27 +7,39 @@ interface RequestOptions {
   data?: any;
   header?: Record<string, string>;
 }
-const handlerRelogin = () => {
-  console.log("handlerRelogin");
-  wx.removeStorageSync("token");
-  const app = getApp<IAppOption>();
-  if (app && app.login) {
-    console.log("app.login");
-    app.login();
-  }
+let reloginInFlight: Promise<string> | null = null;
+
+const getGlobalApp = () => {
+  const app = typeof getApp === "function" ? getApp<IAppOption>() : null;
+  return app;
 };
 
-const request = <T = any>(options: RequestOptions): Promise<T> => {
-  return new Promise((resolve, reject) => {
-    const token = wx.getStorageSync("token") as string | undefined;
-    const app = typeof getApp === "function" ? getApp<IAppOption>() : null;
-    const apiBase = app && app.globalData ? app.globalData.apiBase : "";
-    if (!apiBase) {
-      console.warn("API base url is not configured");
-    }
 
+const getBaseUrl = () => {
+  const app = getGlobalApp();
+  if (!app) {
+    throw new Error("Global app instance not found");
+  }
+  const apiBase = app && app.globalData ? app.globalData.apiBase : "";
+  if (!apiBase) {
+    throw new Error("API base url is not configured");
+  }
+  return apiBase;
+}
+
+const shouldRequireAuth = (url: string) => url.startsWith("/api/admin");
+
+const requestOnce = <T = any>(options: RequestOptions, token?: string): Promise<T> => {
+  return new Promise((resolve, reject) => {
+    const baseurl=getBaseUrl();
+    if (!baseurl) {
+      reject(new Error("API base url is not configured"));
+      return;
+    }
+    const url = `${baseurl}${options.url}`;
+    console.log("request url", url);
     wx.request({
-      url: `${apiBase}${options.url}`,
+      url,
       method: (options.method || "GET") as any,
       data: options.data || {},
       header: {
@@ -39,8 +51,7 @@ const request = <T = any>(options: RequestOptions): Promise<T> => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           // @ts-ignore: common backend shape { data }
           if (res.data.code === APP_USER_NOT_FOUND) {
-            handlerRelogin();
-            reject(res.data);
+            reject({ statusCode: 401, data: res.data });
             return;
           }
           console.log("res.data", res.data);
@@ -52,8 +63,7 @@ const request = <T = any>(options: RequestOptions): Promise<T> => {
           }
         } else {
           if (res.statusCode === 401) {
-            handlerRelogin();
-            reject(res.data);
+            reject({ statusCode: 401, data: res.data });
             return;
           }
           wx.showToast({ title: (res.data as any).message || "请求失败", icon: "none" });
@@ -66,6 +76,32 @@ const request = <T = any>(options: RequestOptions): Promise<T> => {
       },
     });
   });
+};
+
+const request = async <T = any>(options: RequestOptions): Promise<T> => {
+  const app = getGlobalApp();
+  if (!app) {
+    throw new Error("Global app instance not found");
+  }
+  let token = wx.getStorageSync("token") as string | undefined;
+  if (!token && shouldRequireAuth(options.url)) {
+    try {
+      token = await app.appLogin();
+    } catch (e) {
+      console.error("Login failed", e);
+      throw e;
+    }
+  }
+
+  try {
+    return await requestOnce<T>(options, token);
+  } catch (err: any) {
+    if (err && typeof err === "object" && err.statusCode === 401) {
+      const newToken = await app.appLogin();
+      return await requestOnce<T>(options, newToken);
+    }
+    throw err;
+  }
 };
 
 export default request;

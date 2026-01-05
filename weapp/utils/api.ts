@@ -1,7 +1,7 @@
 import request from "./request";
 
 // Auth
-export const login = (data: any) => request<{ token: string }>({ url: "/api/login/wechat", method: "POST", data });
+export const wechatLogin = (data: any) => request<{ token: string }>({ url: "/api/login/wechat", method: "POST", data });
 
 // User
 export const getCurrentUser = () => request<any>({ url: "/api/admin/me" });
