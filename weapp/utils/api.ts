@@ -9,6 +9,7 @@ export const updateMyInfo = (data: any) => request({ url: "/api/admin/me", metho
 
 // Classes
 export const getClassDetail = (id: number) => request<any>({ url: `/api/admin/classes/${id}` });
+export const updateClass = (id: number, data: any) => request<any>({ url: `/api/admin/classes/${id}`, method: "PUT", data });
 export const updateClassStatus = (id: number, data: { status: number }) =>
 	request({ url: `/api/admin/classes/${id}/status`, method: 'PUT', data });
 export const bindClass = (data: { class_id: number; password: string }) => request({ url: '/api/admin/bind/class', method: 'POST', data });

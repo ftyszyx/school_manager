@@ -71,6 +71,16 @@ module.exports = {
 					</van-radio-group>
 				</view>
 				<view class="card-footer">
+					<van-button
+						size="mini"
+						type="default"
+						catchtap="onRenameClass"
+						data-id="{{item.id}}"
+						data-name="{{item.class_name || item.name || ''}}"
+						data-index="{{index}}"
+					>
+						改名
+					</van-button>
 					<van-button size="mini" type="danger" catchtap="onUnbind" data-id="{{item.id}}">解绑</van-button>
 				</view>
 			</view>

@@ -1,5 +1,5 @@
 // pages/index/index.ts
-import { getCurrentUser, unbindClass, updateClassStatus } from '../../utils/api';
+import { getCurrentUser, unbindClass, updateClass, updateClassStatus } from '../../utils/api';
 const app = getApp<IAppOption>();
 const BASE_RECONNECT_DELAY = 1000;
 const MAX_RECONNECT_DELAY = 15000;
@@ -263,6 +263,42 @@ Page<IndexData, WechatMiniprogram.IAnyObject>({
 						console.error('Unbind failed', error);
 						wx.showToast({ title: '解绑失败', icon: 'none' });
 					}
+				}
+			},
+		});
+	},
+
+	async onRenameClass(e: WechatMiniprogram.BaseEvent) {
+		const { id, name, index } = (e.currentTarget as any).dataset as { id: number; name: string; index: number };
+		const currentName = typeof name === 'string' ? name : '';
+		wx.showModal({
+			title: '修改班级名',
+			content: '请输入新的班级名称',
+			editable: true as any,
+			placeholderText: currentName || '班级名称' as any,
+			success: async (res) => {
+				if (!res.confirm) {
+					return;
+				}
+				const newName = (res as any).content as string;
+				if (!newName || !newName.trim()) {
+					wx.showToast({ title: '班级名不能为空', icon: 'none' });
+					return;
+				}
+				try {
+					await updateClass(id, { name: newName.trim() });
+					if (typeof index === 'number' && index >= 0) {
+						// WXML 优先展示 class_name，其次 name；这里两个都更新
+						this.setData({
+							[`classes[${index}].name`]: newName.trim(),
+							[`classes[${index}].class_name`]: newName.trim(),
+						});
+					}
+					wx.showToast({ title: '修改成功', icon: 'success' });
+					await this.fetchData();
+				} catch (error) {
+					console.error('Rename class failed', error);
+					wx.showToast({ title: '修改失败', icon: 'none' });
 				}
 			},
 		});
