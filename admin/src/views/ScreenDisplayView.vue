@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { getClassesBySchool, getSimpleSchool } from '@/apis'
+import { getClassesBySchool, getSimpleSchool, getSchoolClassStatusConfigs } from '@/apis'
 import type { ClassInfo } from '@/types/classes'
+import type { SchoolClassStatusConfigItem, VantTagType } from '@/types/schools'
 
 interface ScreenClass extends ClassInfo {
   id: number
@@ -20,10 +21,14 @@ const schoolName = ref('')
 const lastUpdate = ref<Date | null>(null)
 let socket: WebSocket | null = null
 
-const statusMap: Record<number, { text: string; color: string }> = {
-  0: { text: '已放学', color: '#0066FF' },
-  1: { text: '上课中', color: '#FF6600' },
-  2: { text: '放学中', color: '#00C853' },
+const statusConfigs = ref<SchoolClassStatusConfigItem[]>([])
+
+const typeToColor = (t: VantTagType) => {
+  if (t === 'success') return '#00C853'
+  if (t === 'warning') return '#FFB300'
+  if (t === 'danger') return '#FF1744'
+  if (t === 'primary') return '#0066FF'
+  return '#9E9E9E'
 }
 
 const nowTime = ref(new Date())
@@ -45,12 +50,24 @@ const maxClassCount = computed(() => {
 })
 
 const getStatusLabel = (status: number) => {
-  return statusMap[status]?.text ?? '未知'
+  const cfg = statusConfigs.value.find((c) => c.status === status)
+  return cfg?.label ?? '未知'
 }
 
 const getStatusColor = (status: number) => {
-  return statusMap[status]?.color ?? '#999999'
+  const cfg = statusConfigs.value.find((c) => c.status === status)
+  return cfg ? typeToColor(cfg.type) : '#999999'
 }
+
+const legendItems = computed(() => {
+  if (!statusConfigs.value.length) {
+    return [{ status: -1, label: '未知', color: '#999999' }]
+  }
+  return statusConfigs.value
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((c) => ({ status: c.status, label: c.label || '未配置', color: typeToColor(c.type) }))
+})
 
 const tableRows = computed(() => {
   return grades.value.map((grade) => {
@@ -143,6 +160,13 @@ const loadData = async () => {
   try {
     const school = await getSimpleSchool(schoolId)
     schoolName.value = school.name
+
+    try {
+      statusConfigs.value = await getSchoolClassStatusConfigs(schoolId)
+    } catch (e) {
+      statusConfigs.value = []
+    }
+
     const list = await getClassesBySchool(schoolId)
     console.log("get data",list)
     const normalized: ScreenClass[] = list.map((c: any) => ({
@@ -223,9 +247,9 @@ onBeforeUnmount(() => {
     </div>
 
     <div class="screen-legend">
-      <div class="legend-item" v-for="(info, key) in statusMap" :key="key">
+      <div class="legend-item" v-for="info in legendItems" :key="info.status">
         <span class="legend-color" :style="{ backgroundColor: info.color }"></span>
-        <span class="legend-text">{{ info.text }}</span>
+        <span class="legend-text">{{ info.label }}</span>
       </div>
     </div>
   </div>

@@ -6,6 +6,7 @@ pub mod classes;
 pub mod permissions;
 pub mod role_permissions;
 pub mod roles;
+pub mod school_class_status_configs;
 pub mod schools;
 pub mod teacher_classes;
 pub mod user_roles;

@@ -4,6 +4,7 @@ pub use super::classes::Entity as Classes;
 pub use super::permissions::Entity as Permissions;
 pub use super::role_permissions::Entity as RolePermissions;
 pub use super::roles::Entity as Roles;
+pub use super::school_class_status_configs::Entity as SchoolClassStatusConfigs;
 pub use super::schools::Entity as Schools;
 pub use super::teacher_classes::Entity as TeacherClasses;
 pub use super::user_roles::Entity as UserRoles;

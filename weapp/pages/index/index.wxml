@@ -65,9 +65,14 @@ module.exports = {
 						bind:change="onStatusChange"
 						disabled="{{updatingStatusId === item.id}}"
 					>
-						<van-radio name="0">已放学</van-radio>
-						<van-radio name="1">上课中</van-radio>
-						<van-radio name="2">放学中</van-radio>
+						<van-radio
+							wx:for="{{statusOptions}}"
+							wx:key="value"
+							wx:for-item="opt"
+							name="{{opt.value}}"
+						>
+							{{opt.label}}
+						</van-radio>
 					</van-radio-group>
 				</view>
 				<view class="card-footer">

@@ -10,3 +10,4 @@ pub mod users;
 pub mod schools;
 pub mod classes;
 pub mod teacher_classes;
+pub mod school_class_status_configs;

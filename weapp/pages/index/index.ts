@@ -209,6 +209,24 @@ Page<IndexData, WechatMiniprogram.IAnyObject>({
 		this.setData({ loading: true });
 		try {
 			const userInfo = await getCurrentUser();
+			const remoteConfigs = (userInfo && userInfo.class_status_configs) || [];
+			const hasRemoteConfigs = Array.isArray(remoteConfigs) && remoteConfigs.length > 0;
+			const statusOptions = hasRemoteConfigs
+				? remoteConfigs
+						.slice()
+						.sort((a: any, b: any) => Number(a.sort_order ?? a.sortOrder ?? 0) - Number(b.sort_order ?? b.sortOrder ?? 0))
+						.map((c: any) => ({
+							value: String(c.status),
+							label: String(c.label),
+						}))
+				: this.data.statusOptions;
+			const statusMap = hasRemoteConfigs
+				? remoteConfigs.reduce((acc: any, c: any) => {
+					const key = Number(c.status);
+					acc[key] = { text: String(c.label), type: String(c.type || 'default') };
+					return acc;
+				}, {} as any)
+				: ({} as any);
 			const isTeacher = (userInfo?.role_infos || []).some((role: any) =>
 				['teacher', 'admin'].includes((role.name || '').toLowerCase()),
 			);
@@ -222,6 +240,8 @@ Page<IndexData, WechatMiniprogram.IAnyObject>({
 				hasUserInfo: true,
 				classes: normalizedClasses,
 				isTeacher,
+				statusOptions,
+				statusMap,
 			});
 			const schoolId = this.determineSchoolId(userInfo, normalizedClasses);
 			this.ensureRealtimeConnection(schoolId);

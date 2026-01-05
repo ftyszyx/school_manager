@@ -4,6 +4,7 @@ pub mod list_api;
 pub mod permission_api;
 pub mod role_api;
 pub mod school_api;
+pub mod school_class_status_config_api;
 pub mod user_api;
 pub mod wechat_api;
 pub mod ws_api;

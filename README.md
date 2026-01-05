@@ -44,7 +44,7 @@ scholl_manager
 
 ### 数据库迁移
 ```bash
-sqlx migrate run
+sqlx migrate run --database-url "postgres://test:123456@localhost:5432/school"
 ```
 
 清除
@@ -57,5 +57,5 @@ sqlx migrate revert --target-version 0
 
 ### 生成entity
 ```
-sea-orm-cli generate entity -u "postgres://test:123456@localhost:5432/test_chat" -o "crates/data_model/src" --with-serde both
+sea-orm-cli generate entity -u "postgres://test:123456@localhost:5432/school" -o "crates/data_model/src" --with-serde both
 ```

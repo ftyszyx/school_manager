@@ -1,6 +1,7 @@
 use crate::apis::auth_middleware::Claims;
 use crate::apis::list_api::ListParamsReq;
 use crate::apis::list_api::PagingResponse;
+use crate::apis::school_class_status_config_api;
 use crate::core::app::AppState;
 use crate::core::constants;
 use crate::core::error::AppError;
@@ -88,6 +89,7 @@ pub struct UserInfo {
     pub wechat_avatar_url: Option<String>,
     pub class_infos: Vec<UserClassInfo>,
     pub role_infos: Vec<UserRoleInfo>,
+    pub class_status_configs: Vec<school_class_status_config_api::SchoolClassStatusConfigItem>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -167,7 +169,13 @@ pub async fn login(
 #[handler]
 pub async fn get_current_user(depot: &mut Depot) -> Result<ApiResponse<UserInfo>, AppError> {
     let state = depot.obtain::<AppState>().unwrap();
-    let user_info = get_by_id_impl(&state, depot.obtain::<Claims>().unwrap().user_id).await?;
+    let mut user_info = get_by_id_impl(&state, depot.obtain::<Claims>().unwrap().user_id).await?;
+    let resolved_school_id = user_info
+        .school_id
+        .or_else(|| user_info.class_infos.first().map(|c| c.school_id));
+    if let Some(school_id) = resolved_school_id {
+        user_info.class_status_configs = school_class_status_config_api::get_configs_by_school_id(&state, school_id).await?;
+    }
     Ok(ApiResponse::success(user_info))
 }
 
@@ -504,6 +512,7 @@ async fn enrich_users_with_details(
                 created_at: user.created_at.into(),
                 role_infos,
                 class_infos,
+                class_status_configs: vec![],
             }
         })
         .collect();

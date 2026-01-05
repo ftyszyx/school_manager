@@ -1,8 +1,10 @@
 import type { PagingResponse } from '@/types/api'
 import type {
   School,
+  SchoolClassStatusConfigItem,
   SchoolCreateRequest,
   SchoolListRequest,
+  UpdateSchoolClassStatusConfigsRequest,
   SchoolUpdateRequest
 } from '@/types/schools'
 import request from '@/utils/request'
@@ -29,4 +31,15 @@ export const deleteSchool = async (id: number): Promise<void> => {
 
 export const getSimpleSchool = async (id: number): Promise<School> => {
   return (await request.get(`/api/schools/${id}/simple`)).data
+}
+
+export const getSchoolClassStatusConfigs = async (id: number): Promise<SchoolClassStatusConfigItem[]> => {
+  return (await request.get(`/api/admin/schools/${id}/class-status-configs`)).data
+}
+
+export const updateSchoolClassStatusConfigs = async (
+  id: number,
+  data: UpdateSchoolClassStatusConfigsRequest
+): Promise<SchoolClassStatusConfigItem[]> => {
+  return (await request.put(`/api/admin/schools/${id}/class-status-configs`, data)).data
 }

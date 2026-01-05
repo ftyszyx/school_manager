@@ -7,9 +7,9 @@ import {
   deleteClass,
   createClassesBulk
 } from '@/apis/classes'
-import { getSchools } from '@/apis/schools'
+import { getSchools, getSchoolClassStatusConfigs } from '@/apis/schools'
 import type { ClassInfo, ClassCreateRequest, ClassUpdateRequest, ClassUserInfo } from '@/types/classes'
-import type { School } from '@/types/schools'
+import type { School, SchoolClassStatusConfigItem, VantTagType } from '@/types/schools'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useClipboard } from '@vueuse/core'
@@ -18,6 +18,7 @@ const { t } = useI18n()
 const { copy, copied } = useClipboard()
 const classes = ref<ClassInfo[]>([])
 const schools = ref<School[]>([])
+const schoolStatusConfigsMap = ref<Record<number, SchoolClassStatusConfigItem[]>>({})
 const loading = ref(true)
 const showModal = ref(false)
 const isEdit = ref(false)
@@ -54,18 +55,67 @@ const schoolNameMap = computed(() => {
   }, {} as Record<number, string>)
 })
 
-const statusMap = computed(() => {
-  return statusOptions.reduce((map, option) => {
-    map[option.value] = option.label
-    return map
-  }, {} as Record<number, string>)
+const mapElTagType = (t: VantTagType) => {
+  if (t === 'success') return 'success'
+  if (t === 'warning') return 'warning'
+  if (t === 'danger') return 'danger'
+  if (t === 'default') return 'info'
+  return 'primary'
+}
+
+const getSchoolStatusConfigs = (schoolId: number | undefined) => {
+  if (!schoolId) return []
+  return schoolStatusConfigsMap.value[schoolId] || []
+}
+
+const resolveStatusLabel = (schoolId: number | undefined, status: number) => {
+  const cfg = getSchoolStatusConfigs(schoolId).find((c) => c.status === status)
+  return cfg ? cfg.label : '未知'
+}
+
+const resolveStatusElType = (schoolId: number | undefined, status: number) => {
+  const cfg = getSchoolStatusConfigs(schoolId).find((c) => c.status === status)
+  return cfg ? mapElTagType(cfg.type) : 'info'
+}
+
+const ensureSchoolConfigsLoaded = async (schoolIds: number[]) => {
+  const unique = Array.from(new Set(schoolIds)).filter((id) => Number.isFinite(id)) as number[]
+  const missing = unique.filter((id) => !(id in schoolStatusConfigsMap.value))
+  if (!missing.length) return
+
+  const next = { ...schoolStatusConfigsMap.value }
+  await Promise.all(
+    missing.map(async (id) => {
+      try {
+        next[id] = await getSchoolClassStatusConfigs(id)
+      } catch (e) {
+        next[id] = []
+      }
+    })
+  )
+  schoolStatusConfigsMap.value = next
+}
+
+const queryStatusOptions = computed(() => {
+  if (!query.school_id) return statusOptions
+  const cfgs = getSchoolStatusConfigs(query.school_id)
+  if (!cfgs.length) return statusOptions
+  return cfgs
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((c) => ({ label: c.label || `状态${c.status}`, value: c.status }))
 })
 
-const statusTypeMap = {
-  0: 'info',
-  1: 'success',
-  2: 'warning'
-} as const
+const currentFormStatusOptions = computed(() => {
+  const schoolId = (currentClass.value as any)?.school_id as number | undefined
+  if (!schoolId) return statusOptions
+  const cfgs = getSchoolStatusConfigs(schoolId)
+  if (!cfgs.length) return statusOptions
+  return cfgs
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((c) => ({ label: c.label || `状态${c.status}`, value: c.status }))
+})
 
 const fetchClasses = async () => {
   loading.value = true
@@ -80,6 +130,8 @@ const fetchClasses = async () => {
      })
     classes.value = res.list
     total.value = res.total
+
+    await ensureSchoolConfigsLoaded((res.list || []).map((c) => c.school_id))
   } catch (error) {
     console.error(error)
   } finally {
@@ -91,6 +143,8 @@ const fetchSchools = async () => {
   try {
     const res = await getSchools({ page_size: 1000 }) // Fetch all schools
     schools.value = res.list
+
+    await ensureSchoolConfigsLoaded((res.list || []).map((s) => s.id))
   } catch (error) {
     console.error(error)
   }
@@ -160,6 +214,8 @@ const handleEdit = (classInfo: ClassInfo) => {
   isEdit.value = true
   currentClassId.value = classInfo.id
   currentClass.value = { ...classInfo }
+
+  ensureSchoolConfigsLoaded([classInfo.school_id])
   showModal.value = true
 }
 
@@ -249,7 +305,7 @@ onMounted(() => {
         </el-select>
         <el-input-number v-model="query.grade" :placeholder="$t('classes.grade')" clearable class="w-48" />
         <el-select v-model="query.status" :placeholder="$t('common.status')" clearable class="w-48">
-          <el-option v-for="option in statusOptions" :key="option.value" :label="option.label" :value="option.value" />
+          <el-option v-for="option in queryStatusOptions" :key="option.value" :label="option.label" :value="option.value" />
         </el-select>
         <el-input v-model="query.name" :placeholder="$t('common.search_by_name')" clearable class="w-48" />
         <el-button type="primary" @click="fetchClasses">{{ $t("common.search") }}</el-button>
@@ -270,7 +326,9 @@ onMounted(() => {
         <el-table-column :label="$t('classes.class')" prop="class" width="100" />
         <el-table-column :label="$t('common.status')" prop="status" width="120">
            <template #default="{ row }">
-            <el-tag :type="statusTypeMap[row.status as keyof typeof statusTypeMap]">{{ statusMap[row.status as keyof typeof statusMap] }}</el-tag>
+            <el-tag :type="resolveStatusElType(row.school_id, row.status)">
+              {{ resolveStatusLabel(row.school_id, row.status) }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column :label="$t('classes.teachers')" min-width="150">
@@ -327,7 +385,7 @@ onMounted(() => {
         </el-form-item>
         <el-form-item :label="$t('common.status')" prop="status">
           <el-select v-model="currentClass.status" class="w-full">
-            <el-option v-for="option in statusOptions" :key="option.value" :label="option.label" :value="option.value" />
+            <el-option v-for="option in currentFormStatusOptions" :key="option.value" :label="option.label" :value="option.value" />
           </el-select>
         </el-form-item>
         <el-form-item :label="$t('classes.password')" prop="password">

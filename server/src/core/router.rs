@@ -46,6 +46,11 @@ pub fn build_router(app_state: AppState) -> Router {
         .push(Router::with_path("/schools/{id}").put(school_api::update))
         .push(Router::with_path("/schools/{id}").delete(school_api::delete))
         .push(Router::with_path("/schools").get(school_api::get_list))
+        .push(
+            Router::with_path("/schools/{id}/class-status-configs")
+                .get(school_class_status_config_api::get_by_school_id)
+                .put(school_class_status_config_api::update_by_school_id),
+        )
         //classes
         .push(Router::with_path("/classes").get(class_api::get_list))
         .push(Router::with_path("/classes/{id}").get(class_api::get_by_id))
