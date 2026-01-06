@@ -49,6 +49,7 @@ sea-orm-cli generate entity -u "postgres://test:123456@localhost:5432/school" -o
 
 
 ## 发布说明
-1. 通过 github actions 生成 docker
+1. 通过 github actions（git创建tag v1.0.0） 生成 docker
 2. 在服务端使用 update_server.sh 脚本更新服务
-3. 在服务端使用 update_admin.sh 脚本更新管理后台
+3. 在本地运行npm run build,会编译admin 前端并复制到pub/web目录下
+4. 在服务端使用 update_web.sh 脚本更新管理后台

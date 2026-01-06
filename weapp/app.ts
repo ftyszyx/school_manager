@@ -66,6 +66,7 @@ App<IAppOption>({
 		userInfo: null,
 		token: null,
 		apiBase: 'https://school.bytefuse.cn',
+		// apiBase: 'https://frptest.bytefuse.cn',
 	}
 });
 
