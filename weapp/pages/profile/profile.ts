@@ -21,7 +21,6 @@ Page({
 			const userInfo = await getCurrentUser();
 			// Ensure fields are not null for data binding
 			userInfo.wechat_nickname = userInfo.wechat_nickname || '';
-			userInfo.phone = userInfo.phone || '';
 			this.setData({ userInfo });
 		} catch (error) {
 			wx.showToast({ title: '加载用户信息失败', icon: 'none' });
@@ -97,11 +96,8 @@ Page({
 
 	async onSave() {
 		try {
-			console.log("onsave phone",this.data.userInfo.phone)
-			console.log('onSave', this.data.userInfo);
 			const payload: any = {
 				wechat_nickname: this.data.userInfo.wechat_nickname,
-				phone: this.data.userInfo.phone,
 				wechat_avatar_url: this.data.userInfo.wechat_avatar_url,
 			};
 			await updateMyInfo(payload);

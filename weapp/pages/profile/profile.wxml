@@ -14,15 +14,6 @@
 			data-field="wechat_nickname"
 			bind:input="onFieldInput"
 		/>
-		<van-field
-			label="手机号"
-			value="{{ userInfo.phone }}"
-			placeholder="请输入手机号"
-			input-align="right"
-			type="tel"
-			data-field="phone"
-			bind:input="onFieldInput"
-		/>
 		<van-cell title="绑定学校" value="{{ userInfo.school_name || '未绑定' }}" is-link bind:click="showSchoolPicker" />
 	</van-cell-group>
 
