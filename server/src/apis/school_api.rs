@@ -3,15 +3,26 @@ use crate::core::app::AppState;
 use crate::core::error::AppError;
 use crate::core::response::ApiResponse;
 use crate::utils::convert::from_str_optional;
-use data_model::schools;
+use data_model::{school_class_status_configs, schools};
 use salvo::{oapi::extract::*, prelude::*};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize, Serialize, Debug, ToSchema, Clone)]
+pub struct SchoolClassStatusConfigItem {
+    pub status: i32,
+    pub label: String,
+    #[serde(rename = "type")]
+    pub r#type: String,
+    pub sort_order: i32,
+}
 
 #[derive(Deserialize, Debug, ToSchema)]
 pub struct SchoolCreatePayload {
     pub name: String,
     pub password: String,
+    #[serde(default)]
+    pub class_status_configs: Option<Vec<SchoolClassStatusConfigItem>>,
 }
 
 #[derive(Deserialize, Debug, ToSchema)]
@@ -48,12 +59,30 @@ pub async fn add(
 }
 
 pub async fn add_impl(state: &AppState, req: SchoolCreatePayload) -> Result<schools::Model, AppError> {
+    let txn = state.db.begin().await?;
+
     let new_school = schools::ActiveModel {
         name: Set(req.name),
         password: Set(req.password),
         ..Default::default()
     };
-    let school = new_school.insert(&state.db).await?;
+    let school = new_school.insert(&txn).await?;
+
+    if let Some(configs) = req.class_status_configs {
+        for cfg in configs.iter() {
+            let active = school_class_status_configs::ActiveModel {
+                school_id: Set(school.id),
+                status: Set(cfg.status),
+                label: Set(cfg.label.clone()),
+                r#type: Set(cfg.r#type.clone()),
+                sort_order: Set(cfg.sort_order),
+                ..Default::default()
+            };
+            let _ = active.insert(&txn).await?;
+        }
+    }
+
+    txn.commit().await?;
     Ok(school)
 }
 

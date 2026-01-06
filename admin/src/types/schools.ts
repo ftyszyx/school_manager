@@ -36,4 +36,5 @@ export interface SchoolUpdateRequest {
 export interface SchoolCreateRequest {
   name: string
   password: string
+	class_status_configs?: SchoolClassStatusConfigItem[]
 }

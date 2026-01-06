@@ -18,19 +18,6 @@ scholl_manager
 5. 老师在小程序登录时需要申请权限，管理员在后台审核后，老师才能登录。
 
 
-1.找到一个小程序端的代码@weapp,可以在此代码基础上修改
-
-
-微信小程序功能需求：
-1. 进入时需要登录微信，并将账号信息同步到后端
-2. 登录成功后，打开首页，显示当前账号关联的班级信息列表
-3. 可以删除班级绑定
-4.可以增加班级绑定
-5. 点班级,会跳转到班级信息页面，并可以修改班级状态
-    班级信息页中的状态需要和后端保持同步(是否需要使用webhook?)
-
-
-
 ### 用户管理
 1. 登录，注册，退出
 
@@ -59,3 +46,9 @@ sqlx migrate revert --target-version 0
 ```
 sea-orm-cli generate entity -u "postgres://test:123456@localhost:5432/school" -o "crates/data_model/src" --with-serde both
 ```
+
+
+## 发布说明
+1. 通过 github actions 生成 docker
+2. 在服务端使用 update_server.sh 脚本更新服务
+3. 在服务端使用 update_admin.sh 脚本更新管理后台

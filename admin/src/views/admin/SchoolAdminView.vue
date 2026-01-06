@@ -79,8 +79,8 @@ const createDefaultStatusConfigs = (): SchoolClassStatusConfigItem[] => {
   ]
   return base.map((b) => ({
     status: b.status,
-    label: '',
-    type: 'default' as VantTagType,
+    label: b.status === 1 ? '上课中' : b.status === 2 ? '放学中' : '已放学',
+    type: (b.status === 1 ? 'success' : b.status === 2 ? 'warning' : 'default') as VantTagType,
     sort_order: b.sort_order
   }))
 }
@@ -148,8 +148,10 @@ const handleSubmit = async () => {
       await updateSchoolClassStatusConfigs(currentSchoolId.value, { configs: currentStatusConfigs.value })
       ElMessage.success(t('common.save'))
     } else {
-      const created = await createSchool(payload as SchoolCreateRequest)
-      await updateSchoolClassStatusConfigs(created.id, { configs: currentStatusConfigs.value })
+		await createSchool({
+			...(payload as SchoolCreateRequest),
+			class_status_configs: currentStatusConfigs.value
+		})
       ElMessage.success(t('common.created'))
     }
     showModal.value = false
@@ -255,7 +257,7 @@ onMounted(() => {
       </div>
     </el-card>
 
-    <el-dialog v-model="showModal" :title="isEdit ? $t('common.edit') : $t('common.create')" width="520px">
+    <el-dialog v-model="showModal" :title="isEdit ? $t('common.edit') : $t('common.create')" width="720px">
       <el-form ref="formRef" :model="currentSchool" :rules="rules" label-width="140px">
         <el-form-item :label="$t('common.name')" prop="name">
           <el-input v-model="currentSchool.name" />
@@ -276,6 +278,7 @@ onMounted(() => {
 				>
 					<el-tag type="info" style="min-width: 48px; text-align: center">{{ cfg.status }}</el-tag>
 					<el-input v-model="cfg.label" placeholder="显示名" style="width: 180px" />
+					<span class="text-sm text-gray-500">状态颜色</span>
 					<el-select v-model="cfg.type" placeholder="type" style="width: 140px">
 						<el-option label="default" value="default">
 							<el-tag type="info">default</el-tag>
@@ -293,6 +296,7 @@ onMounted(() => {
 							<el-tag type="danger">danger</el-tag>
 						</el-option>
 					</el-select>
+					<el-tag :type="mapElTagType(cfg.type)" style="min-width: 72px; text-align: center">{{ cfg.type }}</el-tag>
 				</div>
 			</div>
 		</el-form-item>
