@@ -4,7 +4,39 @@ import { wechatLogin } from './utils/api';
 App<IAppOption>({
 	onLaunch() {
 		console.log('onLaunch');
+		this.checkForUpdate();
 		this.autoLogin();
+	},
+
+	checkForUpdate() {
+		if (!wx.canIUse || !wx.canIUse('getUpdateManager')) {
+			return;
+		}
+
+		const updateManager = wx.getUpdateManager();
+
+		updateManager.onCheckForUpdate(function (res) {
+			console.log('hasUpdate', res.hasUpdate);
+		});
+
+		updateManager.onUpdateReady(function () {
+			wx.showModal({
+				title: '更新提示',
+				content: '新版本已经准备好，请重启应用以继续使用。',
+				showCancel: false,
+				success() {
+					updateManager.applyUpdate();
+				}
+			});
+		});
+
+		updateManager.onUpdateFailed(function () {
+			wx.showModal({
+				title: '更新失败',
+				content: '新版本下载失败，请稍后重试或重新打开小程序。',
+				showCancel: false,
+			});
+		});
 	},
 
 	autoLogin() {
