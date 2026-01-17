@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/src/app/target  \
     cargo build --release --workspace  \
     && mkdir -p /usr/src/out \
-    && cp target/release/app_server /usr/src/out/app_server
+    && cp target/release/school-manager-server /usr/src/out/
 
 FROM debian:12-slim AS runner
 WORKDIR /app
@@ -31,7 +31,7 @@ RUN if [ "$USE_ALIYUN_DEBIAN_MIRROR" = "1" ]; then sed -i 's/deb.debian.org/mirr
  # --no-install-recommends  只安装必要的依赖包
  && apt-get install -y --no-install-recommends pkg-config libssl-dev libpq-dev nodejs npm curl \
  && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /usr/src/out/app_server .
+COPY --from=builder /usr/src/out/school-manager-server .
 COPY --from=builder /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx
 COPY migrations/ ./migrations/
 COPY entrypoint.sh ./entrypoint.sh
