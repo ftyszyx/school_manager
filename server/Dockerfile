@@ -1,7 +1,10 @@
-# Stage 1: Build
-FROM rust:1.88-slim AS builder
+
+ARG APP_BIN=school-manager-server
 ARG USE_ALIYUN_DEBIAN_MIRROR=1
 ARG USE_ALIYUN_CRATES_MIRROR=1
+
+# Stage 1: Build
+FROM rust:1.88-slim AS builder
 ENV CARGO_HOME=/usr/local/cargo
 # Install build dependencies, including postgresql client and nodejs/npm for swagger-ui
 RUN if [ "$USE_ALIYUN_DEBIAN_MIRROR" = "1" ]; then sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources; fi
@@ -20,18 +23,17 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/src/app/target  \
     cargo build --release --workspace  \
     && mkdir -p /usr/src/out \
-    && cp target/release/school-manager-server /usr/src/out/
+    && cp target/release/${APP_BIN} /usr/src/out/
 
 FROM debian:12-slim AS runner
 WORKDIR /app
-ARG USE_ALIYUN_DEBIAN_MIRROR=1
 # Install required runtime libraries for the binary (OpenSSL, certs)
 RUN if [ "$USE_ALIYUN_DEBIAN_MIRROR" = "1" ]; then sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources; fi \
  && apt-get update \
  # --no-install-recommends  只安装必要的依赖包
  && apt-get install -y --no-install-recommends pkg-config libssl-dev libpq-dev nodejs npm curl \
  && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /usr/src/out/school-manager-server .
+COPY --from=builder /usr/src/out/${APP_BIN} .
 COPY --from=builder /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx
 COPY migrations/ ./migrations/
 COPY entrypoint.sh ./entrypoint.sh
