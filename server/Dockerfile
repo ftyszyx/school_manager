@@ -17,7 +17,7 @@ RUN cargo install sqlx-cli --no-default-features --features native-tls,postgres
 COPY . .
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/usr/src/app/target \ 
+    --mount=type=cache,target=/usr/src/app/target  \
     cargo build --release --workspace  \
     && mkdir -p /usr/src/out \
     && cp target/release/app_server /usr/src/out/app_server
