@@ -45,7 +45,7 @@ pub async fn init_app() -> Result<AppState> {
         .context("database connection failed")?;
     tracing::info!("Database connected successfully");
     // 初始化 Redis
-    let redis = RedisCache::new(&config.redis.url)
+    let redis = RedisCache::new(&config.redis.url, &config.redis.username, &config.redis.password, &config.redis.key_prefix)
         .with_context(|| "redis connection failed")?;
     tracing::info!("Redis connected successfully");
     // 创建应用状态

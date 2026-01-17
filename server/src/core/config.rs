@@ -24,10 +24,14 @@ pub struct DatabaseConfig {
     pub db_url: String,
 }
 
+
 #[derive(Debug, Clone)]
 pub struct RedisConfig {
-    pub host: String,
     pub port: u16,
+    pub host: String,
+    pub username: String,
+    pub password: String,
+    pub key_prefix: String,
     pub url: String,
 }
 
@@ -109,15 +113,30 @@ impl DatabaseConfig {
     }
 }
 
+
 impl RedisConfig {
     fn from_env() -> Result<Self> {
-        let host = env::var("REDIS_HOST").context("REDIS_HOST must be set")?;
         let port = env::var("REDIS_PORT")
-            .unwrap_or_else(|_| "6379".to_string())
+            .map_err(|_| anyhow::anyhow!("REDIS_PORT must be set"))?
             .parse()
-            .context("Invalid REDIS_PORT value")?;
-        let url = format!("redis://{}:{}", host.clone(), port);
-        Ok(RedisConfig { host, port, url })
+            .map_err(|_| anyhow::anyhow!("Invalid REDIS_PORT value"))?;
+        let host = env::var("REDIS_HOST")
+            .map_err(|_| anyhow::anyhow!("REDIS_HOST must be set"))?;
+        let username = env::var("REDIS_USERNAME")
+            .map_err(|_| anyhow::anyhow!("REDIS_USERNAME must be set"))?;
+        let password = env::var("REDIS_PASSWORD")
+            .map_err(|_| anyhow::anyhow!("REDIS_PASSWORD must be set"))?;
+        let key_prefix = env::var("REDIS_KEY_PREFIX")
+            .unwrap_or_else(|_| "hub_".to_string());
+        let url = format!("redis://{}:{}@{}:{}", username, password, host, port );
+        Ok(RedisConfig {
+            port,
+            host,
+            username,
+            password,
+            key_prefix,
+            url,
+        })
     }
 }
 

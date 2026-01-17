@@ -1,36 +1,53 @@
-use anyhow::{Context, Result};
-use redis::{AsyncCommands, Client, aio::MultiplexedConnection};
-use serde::{ Serialize, de::DeserializeOwned};
+use crate::core::error::AppError;
+use redis::{AsyncCommands, Client, RedisError, aio::MultiplexedConnection};
+use serde::{Serialize, de::DeserializeOwned};
 use std::time::Duration;
 
 #[allow(dead_code)]
 #[derive(Clone)]
 pub struct RedisCache {
     client: Client,
+    key_prefix: String,
 }
 
 #[allow(dead_code)]
 impl RedisCache {
     /// 创建一个新的 RedisCache 实例
-    pub fn new(redis_url: &str) -> Result<Self> {
-        let client = Client::open(redis_url).with_context(|| "redis connection failed")?;
-        Ok(Self { client })
+    pub fn new(redis_url: &str, username: &str, password: &str, key_prefix: &str) -> Result<Self, RedisError> {
+        let url_with_auth = if username.is_empty() && password.is_empty() {
+            redis_url.to_string()
+        } else {
+            let (scheme, rest) = redis_url.split_once("://").ok_or_else(|| {
+                RedisError::from((redis::ErrorKind::InvalidClientConfig, "invalid redis url"))
+            })?;
+
+            if rest.contains('@') {
+                redis_url.to_string()
+            } else {
+                let auth = if username.is_empty() {
+                    format!(":{}@", password)
+                } else {
+                    format!("{}:{}@", username, password)
+                };
+                format!("{}://{}{}", scheme, auth, rest)
+            }
+        };
+        tracing::info!("Redis URL: {}", url_with_auth);
+        let client = Client::open(url_with_auth)?;
+        Ok(Self { client ,key_prefix: key_prefix.to_string()})
     }
 
-    async fn get_conn(&self) -> Result<MultiplexedConnection> {
-        self.client
-            .get_multiplexed_async_connection()
-            .await
-            .with_context(|| "redis connection failed")
+    async fn get_conn(&self) -> Result<MultiplexedConnection, RedisError> {
+        self.client.get_multiplexed_async_connection().await
     }
 
     /// 值会从 JSON 字符串反序列化
-    pub async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
-        let mut conn = self.get_conn().await.with_context(|| "redis connection failed")?;
-        let result: Option<String> = conn.get(key).await.with_context(|| "redis get failed")?;
+    pub async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>, AppError> {
+        let mut conn = self.get_conn().await?;
+        let result: Option<String> = conn.get(format!("{}{}", self.key_prefix, key)).await?;
         match result {
             Some(val_str) => {
-                let val: T = serde_json::from_str(&val_str).with_context(|| "deserialization failed")?;
+                let val: T = serde_json::from_str(&val_str)?;
                 Ok(Some(val))
             }
             None => Ok(None),
@@ -42,22 +59,44 @@ impl RedisCache {
         key: &str,
         value: &T,
         ttl: Option<Duration>,
-    ) -> Result<() > {
-        let mut conn = self.get_conn().await.with_context(|| "redis connection failed")?;
-        let val_str = serde_json::to_string(value).with_context(|| "serialization failed")?;
+    ) -> Result<(), AppError> {
+        let mut conn = self.get_conn().await?;
+        let val_str = serde_json::to_string(value)?;
+        let key = format!("{}{}", self.key_prefix, key);
         if let Some(duration) = ttl {
-            let _: () = conn.set_ex(key, val_str, duration.as_secs() as u64).await.with_context(|| "redis set failed")?;
+            let _: () = conn.set_ex(key, val_str, duration.as_secs() as u64).await?;
         } else {
-            let _: () = conn.set(key, val_str).await.with_context(|| "redis set failed")?;
+            let _: () = conn.set(key, val_str).await?;
         }
         Ok(())
     }
 
     #[allow(dead_code)]
-    pub async fn del(&self, key: &str) -> Result<()> {
-        let mut conn = self.get_conn().await.with_context(|| "redis connection failed")?;
-        let _: () = conn.del(key).await.with_context(|| "redis delete failed")?;
+    pub async fn del(&self, key: &str) -> Result<(), AppError> {
+        let mut conn = self.get_conn().await?;
+        let _: () = conn.del(format!("{}{}", self.key_prefix, key)).await?;
         Ok(())
     }
 }
 
+// 将 Redis 错误转换为自定义的 AppError
+impl From<RedisError> for AppError {
+    fn from(err: RedisError) -> Self {
+        tracing::error!("Redis error: {:?}", err);
+        AppError::ExternalService {
+            service: "Redis".to_string(),
+            error: err.to_string(),
+        }
+    }
+}
+
+// 将 serde_json 错误转换为自定义的 AppError
+impl From<serde_json::Error> for AppError {
+    fn from(err: serde_json::Error) -> Self {
+        tracing::error!("Serialization/Deserialization error: {:?}", err);
+        AppError::BusinessLogic {
+            code: "SERIALIZATION_ERROR".to_string(),
+            message: err.to_string(),
+        }
+    }
+}
