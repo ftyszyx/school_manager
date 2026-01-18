@@ -1,11 +1,11 @@
 
-ARG APP_BIN=school-manager-server
-ARG USE_ALIYUN_DEBIAN_MIRROR=1
-ARG USE_ALIYUN_CRATES_MIRROR=1
 
 # Stage 1: Build
 FROM rust:1.88-slim AS builder
 ENV CARGO_HOME=/usr/local/cargo
+ARG APP_BIN=school-manager-server
+ARG USE_ALIYUN_DEBIAN_MIRROR=1
+ARG USE_ALIYUN_CRATES_MIRROR=1
 # Install build dependencies, including postgresql client and nodejs/npm for swagger-ui
 RUN if [ "$USE_ALIYUN_DEBIAN_MIRROR" = "1" ]; then sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources; fi
 RUN apt-get update && apt-get install -y pkg-config libssl-dev libpq-dev nodejs npm curl
@@ -26,6 +26,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     && cp target/release/${APP_BIN} /usr/src/out/
 
 FROM debian:12-slim AS runner
+ARG APP_BIN=school-manager-server
+ARG USE_ALIYUN_DEBIAN_MIRROR=1
 WORKDIR /app
 # Install required runtime libraries for the binary (OpenSSL, certs)
 RUN if [ "$USE_ALIYUN_DEBIAN_MIRROR" = "1" ]; then sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources; fi \
